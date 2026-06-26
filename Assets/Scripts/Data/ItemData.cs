@@ -7,7 +7,7 @@ namespace SeoulLast.Data
     [CreateAssetMenu(fileName = "Item_", menuName = "NoPainYesGame/Item Data")]
     public class ItemData : ScriptableObject
     {
-        public const int GridW = 7;
+        public const int GridW = 6;
         public const int GridH = 5;
 
         // 기획 Item 테이블 컬럼과 1:1 매핑 (모양만 인스펙터 전용)
@@ -29,7 +29,7 @@ namespace SeoulLast.Data
         public string resourcePath;      // ItemResourcePath
         public string resourceName;      // ItemResourceName
 
-        [Header("모양 (7x5 — 인스펙터 그리드에서 편집, 시트에 컬럼 없음)")]
+        [Header("모양 (6x5 — 인스펙터 그리드에서 편집, 시트에 컬럼 없음)")]
         public bool[] shape = new bool[GridW * GridH];
 
         public bool GetCell(int x, int y) => shape[y * GridW + x];

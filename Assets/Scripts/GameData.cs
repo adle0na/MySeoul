@@ -62,7 +62,7 @@ namespace SeoulLast
     // 4x4 가방 점유 모델
     public class BagModel
     {
-        public int Width = 4, Height = 4;
+        public int Width = 6, Height = 5;
         public List<PlacedItem> Placed = new List<PlacedItem>();
 
         bool InBounds(Vector2Int c) => c.x >= 0 && c.x < Width && c.y >= 0 && c.y < Height;

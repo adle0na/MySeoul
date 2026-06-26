@@ -11,8 +11,8 @@ namespace SeoulLast
     {
         // 레이아웃 상수 (1080x1920 세로)
         const float W = 1080f, H = 1920f;
-        const float CELL = 150f;       // 한 칸 픽셀
-        const float GRID = 600f;       // 4x4 = 600
+        const float CELL = 130f;       // 한 칸 픽셀 (6x5 격자가 화면에 들어가도록)
+        const float GridTop = 290f;    // 격자 상단 Y
         const float MapX0 = 50f, MapY0 = 290f, MapW = 980f, MapH = 900f; // 지도 보드 영역
         readonly Color cBg = new Color(0.11f, 0.12f, 0.15f);
         readonly Color cPanel = new Color(0.14f, 0.15f, 0.19f);
@@ -151,30 +151,38 @@ namespace SeoulLast
             var sub = UIFactory.Label(organizePanel.transform, "Sub", "아이템을 격자에 끌어다 놓으세요. 칸에 안 들어가면 두고 가야 합니다.", 24, TextAnchor.MiddleCenter, new Color(0.7f, 0.72f, 0.78f));
             UIFactory.SetRect(sub.rectTransform, 60, 210, W - 120, 60);
 
-            // 격자 배경 + 컨테이너
+            // 격자 배경 + 컨테이너 (가방 크기 기반으로 계산)
+            float gw = state.Bag.Width * CELL;
+            float gh = state.Bag.Height * CELL;
+            float gx = (W - gw) / 2f;
+
             var gridFrame = UIFactory.Panel(organizePanel.transform, "GridFrame", new Color(0.08f, 0.09f, 0.11f));
-            UIFactory.SetRect(gridFrame.rectTransform, (W - GRID) / 2 - 8, 300 - 8, GRID + 16, GRID + 16);
+            UIFactory.SetRect(gridFrame.rectTransform, gx - 8, GridTop - 8, gw + 16, gh + 16);
 
             var gridGO = new GameObject("Grid", typeof(RectTransform));
             GridRect = gridGO.GetComponent<RectTransform>();
             GridRect.SetParent(organizePanel.transform, false);
-            UIFactory.SetRect(GridRect, (W - GRID) / 2, 300, GRID, GRID);
+            UIFactory.SetRect(GridRect, gx, GridTop, gw, gh);
             BuildGridBackground();
 
+            float trayTop = GridTop + gh + 50f;   // 격자 아래
+
             // 트레이
-            var trayBg = UIFactory.Panel(organizePanel.transform, "TrayBg", new Color(0.09f, 0.10f, 0.13f));
-            UIFactory.SetRect(trayBg.rectTransform, 40, 960, W - 80, 330);
             var trayLabel = UIFactory.Label(organizePanel.transform, "TrayLabel", "획득한 물건", 24, TextAnchor.UpperLeft, new Color(0.7f, 0.72f, 0.78f));
-            UIFactory.SetRect(trayLabel.rectTransform, 55, 925, 400, 40);
+            UIFactory.SetRect(trayLabel.rectTransform, 55, trayTop - 35, 400, 40);
+            var trayBg = UIFactory.Panel(organizePanel.transform, "TrayBg", new Color(0.09f, 0.10f, 0.13f));
+            UIFactory.SetRect(trayBg.rectTransform, 40, trayTop, W - 80, 290);
 
             var trayGO = new GameObject("Tray", typeof(RectTransform));
             TrayRect = trayGO.GetComponent<RectTransform>();
             TrayRect.SetParent(organizePanel.transform, false);
-            UIFactory.SetRect(TrayRect, 40, 970, W - 80, 320);
+            UIFactory.SetRect(TrayRect, 40, trayTop + 10, W - 80, 270);
+
+            float bottomTop = trayTop + 330f;
 
             // 버리기
             var trash = UIFactory.Panel(organizePanel.transform, "Trash", cRed);
-            UIFactory.SetRect(trash.rectTransform, 60, 1330, 360, 170);
+            UIFactory.SetRect(trash.rectTransform, 60, bottomTop, 360, 150);
             TrashRect = trash.rectTransform;
             var tl = UIFactory.Label(trash.transform, "L", "여기로 끌어\n버리기", 28, TextAnchor.MiddleCenter, Color.white);
             UIFactory.Fill(tl.rectTransform);
@@ -182,13 +190,13 @@ namespace SeoulLast
 
             // 다음 날 / 출발
             var next = UIFactory.Button(organizePanel.transform, "NextBtn", "다음 날", cGreen, OnOrganizeNext, out organizeNextLabel);
-            UIFactory.SetRect(next.GetComponent<RectTransform>(), W - 60 - 460, 1330, 460, 170);
+            UIFactory.SetRect(next.GetComponent<RectTransform>(), W - 60 - 460, bottomTop, 460, 150);
         }
 
         void BuildGridBackground()
         {
-            for (int y = 0; y < 4; y++)
-                for (int x = 0; x < 4; x++)
+            for (int y = 0; y < state.Bag.Height; y++)
+                for (int x = 0; x < state.Bag.Width; x++)
                 {
                     var img = UIFactory.Img(GridRect, "bg", new Color(1, 1, 1, 0.06f));
                     img.raycastTarget = false;
