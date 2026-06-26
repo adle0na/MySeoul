@@ -1,0 +1,71 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6aa2a7afbc13e824d869983204d074bc, type: 3}
+  m_Name: EVT-501
+  m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.EventData
+  situation: "\uC11C\uACE0\uAC00 \uC815\uC804\uB410\uB2E4. \uC0DD\uC874\uC5D0 \uD544\uC694\uD55C
+    \uCC45\uC774 \uC788\uC744\uC9C0\uB3C4."
+  choices:
+  - label: "\uB77C\uC774\uD130\uB85C \uBD88\uC744 \uBC1D\uD78C\uB2E4"
+    requiredItem: "\uB77C\uC774\uD130"
+    resultText: "\uC720\uC6A9\uD55C \uC0DD\uC874 \uC815\uBCF4\uB97C \uC5BB\uC5B4
+      \uB9C8\uC74C\uC774 \uB193\uC778\uB2E4."
+    hunger: 0
+    thirst: 0
+    pain: 0
+    fatigue: 0
+    depression: -20
+    bagUpgrade: 0
+  - label: "\uC190\uC804\uB4F1\uC73C\uB85C \uAD6C\uC11D\uAE4C\uC9C0 \uBCF8\uB2E4"
+    requiredItem: "\uC190\uC804\uB4F1"
+    resultText: "\uAD6C\uC11D\uC758 \uBE44\uC0C1 \uC2DD\uB7C9\uAE4C\uC9C0 \uCC3E\uC544\uB0C8\uB2E4."
+    hunger: -10
+    thirst: 0
+    pain: 0
+    fatigue: 0
+    depression: -15
+    bagUpgrade: 0
+  - label: "\uC5B4\uB460 \uC18D\uC744 \uB354\uB4EC\uB294\uB2E4"
+    requiredItem: 
+    resultText: "\uC544\uBB34\uAC83\uB3C4 \uBABB \uCC3E\uACE0 \uC9C0\uCCE4\uB2E4."
+    hunger: 0
+    thirst: 0
+    pain: 0
+    fatigue: 15
+    depression: 5
+    bagUpgrade: 0
+  eventId: EVT-501
+  eventName: "\uC815\uC804\uB41C \uC11C\uACE0"
+  eventType: "\uD2B9\uC815\uC9C0\uC5ED"
+  eventCategory: 
+  probability: 100
+  hasBranch: 
+  region: "\uB3C4\uC11C\uAD00"
+  regionEntryCondition: 
+  regionSpecialEffect: 
+  relatedItemId: 
+  itemOwnedResult: 
+  itemNotOwnedResult: 
+  branchAResult: 
+  branchBResult: 
+  foodWaterChange: 0
+  weaponAmmoChange: 0
+  moraleChange: 0
+  medicalSupplyChange: 0
+  failFoodWater: 0
+  failMorale: 0
+  failMedical: 0
+  statusEffect: 
+  statusDuration: 0
+  statusModifier: 
+  difficulty: 
+  note: 

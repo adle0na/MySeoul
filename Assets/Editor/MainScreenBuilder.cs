@@ -21,6 +21,9 @@ namespace SeoulLast.EditorTools
         static List<Button> roomBtns;
         static List<string> roomNames;
         static Button departBtn;
+        static Text departInfo;
+        static Button bagUpBtn;
+        static Button tamsaBtn;
 
         static readonly Color cBg = new Color(0.93f, 0.90f, 0.83f);
         static readonly Color cPanel = new Color(0.88f, 0.84f, 0.74f);
@@ -68,9 +71,10 @@ namespace SeoulLast.EditorTools
             // ---- TopBar ----
             var bar = Img(root, "TopBar", new Color(0.85f, 0.81f, 0.71f)); SetRect(bar.rectTransform, 0, 0, 1080, 110);
             var dayText = Label(bar.transform, "Day", "DAY 1", 46, TextAnchor.MiddleCenter, cInk); SetRect(dayText.rectTransform, 340, 25, 400, 60);
-            Text sLbl; var statusBtn = Btn(bar.transform, "StatusBtn", "상태보기", cBrown, out sLbl); sLbl.fontSize = 28; SetRect((RectTransform)statusBtn.transform, 1080 - 210, 25, 185, 62);
-            Text bLbl; var backBtn = Btn(bar.transform, "BackBtn", "← 돌아가기", new Color(0.5f, 0.45f, 0.38f), out bLbl); bLbl.fontSize = 26; SetRect((RectTransform)backBtn.transform, 20, 25, 175, 62);
-            var backGO = backBtn.gameObject;
+
+            // 지역 정보/힌트 (지도·가방정리 모두에서 보임)
+            departInfo = Label(root, "DepartInfo", "", 26, TextAnchor.MiddleCenter, new Color(0.35f, 0.30f, 0.22f));
+            SetRect(departInfo.rectTransform, 40, 120, 1000, 64);
 
             // ---- CenterArea ----
             var area = NewRect(root, "CenterArea"); SetRect(area, 40, 130, 1000, 740);
@@ -85,30 +89,36 @@ namespace SeoulLast.EditorTools
             lockerView.SetActive(false); mapView.SetActive(false);
             diaryView.SetActive(false); shopView.SetActive(false); statusView.SetActive(false);
 
-            // ---- Bag (6x5) ----
-            var bagLbl = Label(root, "BagLabel", "가방", 26, TextAnchor.UpperLeft, cInk); SetRect(bagLbl.rectTransform, 135, 885, 200, 40);
-            float gw = 6 * 135f, gh = 5 * 135f, gx = (1080 - gw) / 2f, gy = 925f;
-            var frame = Img(root, "BagFrame", new Color(0.78f, 0.72f, 0.60f)); SetRect(frame.rectTransform, gx - 8, gy - 8, gw + 16, gh + 16);
-            var bagGrid = NewRect(root, "BagGrid"); SetRect(bagGrid, gx, gy, gw, gh);
-            for (int yy = 0; yy < 5; yy++)
-                for (int xx = 0; xx < 6; xx++)
+            // ---- Bag (6x6, cell 110) under BagArea — 가방정리 때만 표시 ----
+            const int BCOLS = 6, BROWS = 6; const float BCELL = 110f;
+            var bagArea = NewRect(root, "BagArea"); Fill(bagArea);
+            var bagLbl = Label(bagArea, "BagLabel", "가방 — 챙길 것을 끌어 담으세요", 26, TextAnchor.UpperLeft, cInk);
+            float gw = BCOLS * BCELL, gh = BROWS * BCELL, gx = (1080 - gw) / 2f, gy = 900f;
+            SetRect(bagLbl.rectTransform, gx, gy - 40, 800, 40);
+            var frame = Img(bagArea, "BagFrame", new Color(0.78f, 0.72f, 0.60f)); SetRect(frame.rectTransform, gx - 8, gy - 8, gw + 16, gh + 16);
+            var bagGrid = NewRect(bagArea, "BagGrid"); SetRect(bagGrid, gx, gy, gw, gh);
+            for (int yy = 0; yy < BROWS; yy++)
+                for (int xx = 0; xx < BCOLS; xx++)
                 {
                     var slot = Img(bagGrid, "bagslot", cSlot); slot.raycastTarget = false;
                     var srt = slot.rectTransform;
                     srt.anchorMin = new Vector2(0, 1); srt.anchorMax = new Vector2(0, 1); srt.pivot = new Vector2(0, 1);
-                    srt.sizeDelta = new Vector2(135 - 8, 135 - 8);
-                    srt.anchoredPosition = new Vector2(xx * 135 + 4, -(yy * 135 + 4));
+                    srt.sizeDelta = new Vector2(BCELL - 8, BCELL - 8);
+                    srt.anchoredPosition = new Vector2(xx * BCELL + 4, -(yy * BCELL + 4));
                 }
+            Text tl; tamsaBtn = Btn(bagArea, "TamsaBtn", "탐사 출발", new Color(0.85f, 0.45f, 0.25f), out tl); tl.fontSize = 36;
+            SetRect((RectTransform)tamsaBtn.transform, (1080 - 480) / 2, gy + gh + 14, 480, 92);
 
-            // ---- Nav ----
-            string[] names = { "사물함", "지도", "일기", "상점" };
-            var navBtns = new Button[4];
-            float nx = 20;
-            for (int i = 0; i < 4; i++)
+            // ---- 상태이상 5개 알약 (캐릭터 좌측) ----
+            string[] statusInit = { "허기", "수분", "건강", "기운", "기분" };
+            var pills = new Image[5]; var pillTexts = new Text[5];
+            for (int i = 0; i < 5; i++)
             {
-                Text nl; var b = Btn(root, "Nav_" + names[i], names[i], cBrown, out nl); nl.fontSize = 34;
-                SetRect((RectTransform)b.transform, nx, 1640, 245, 200);
-                navBtns[i] = b; nx += 265;
+                var pill = Img(root, "Status" + i, new Color(0.42f, 0.52f, 0.42f, 0.55f));
+                SetRect(pill.rectTransform, 10, 150 + i * 64, 104, 54);
+                var pt = Label(pill.transform, "L", statusInit[i], 22, TextAnchor.MiddleCenter, Color.white); Fill(pt.rectTransform);
+                pt.raycastTarget = false;
+                pills[i] = pill; pillTexts[i] = pt;
             }
 
             // ---- DragLayer (최상단) ----
@@ -119,32 +129,31 @@ namespace SeoulLast.EditorTools
             if (ms == null) ms = new GameObject("MainScreen").AddComponent<MainScreen>();
             var so = new SerializedObject(ms);
             SetRef(so, "dayText", dayText);
-            SetRef(so, "backButton", backGO);
             SetRef(so, "characterView", characterView);
             SetRef(so, "lockerView", lockerView);
             SetRef(so, "mapView", mapView);
             SetRef(so, "diaryView", diaryView);
             SetRef(so, "shopView", shopView);
             SetRef(so, "statusView", statusView);
+            SetRef(so, "bagArea", bagArea.gameObject);
             SetRef(so, "bagGridRect", bagGrid);
             SetRef(so, "storageRect", storageRect);
             SetRef(so, "dragLayer", dragLayer);
+            SetRef(so, "departInfo", departInfo);
+            SetRefArray(so, "statusPills", pills);
+            SetRefArray(so, "statusTexts", pillTexts);
+            so.FindProperty("bagWidth").intValue = BCOLS;
+            so.FindProperty("bagHeight").intValue = BROWS;
+            so.FindProperty("bagCell").floatValue = BCELL;
             so.ApplyModifiedProperties();
 
             // ---- 버튼 OnClick(persistent) 연결 ----
-            Wire(statusBtn, ms.OpenStatus);
-            Wire(backBtn, ms.GoHome);
-            Wire(navBtns[0], ms.OpenLocker);
-            Wire(navBtns[1], ms.OpenMap);
-            Wire(navBtns[2], ms.OpenDiary);
-            Wire(navBtns[3], ms.OpenShop);
-
-            // 방 선택 + 출발
+            // 방 선택 → 출발(가방정리로) → 탐사(이벤트로)
             for (int i = 0; i < roomBtns.Count; i++)
                 WireString(roomBtns[i], ms.SelectRoom, roomNames[i]);
             Wire(departBtn, ms.Depart);
-
-            backGO.SetActive(false);
+            Wire(tamsaBtn, ms.Explore);
+            Wire(bagUpBtn, ms.UpgradeBag);
 
             // ---- GameFlow: 오브젝트 생성 + EventData 에셋 전부 연결 ----
             var gf = Object.FindObjectOfType<GameFlow>();
@@ -188,6 +197,10 @@ namespace SeoulLast.EditorTools
             var hint = Label(v.transform, "H", "아래 가방으로 끌어 담거나, 가방에서 여기로 끌어 보관하세요.", 22, TextAnchor.UpperCenter, new Color(0.4f, 0.36f, 0.3f)); SetRect(hint.rectTransform, 0, 82, 1000, 40);
             var s = Img(v.transform, "Storage", new Color(0.83f, 0.78f, 0.67f, 0.5f)); SetRect(s.rectTransform, 20, 130, 960, 560);
             storageRect = s.rectTransform;
+
+            // [디버그] 가방 단계 업그레이드 (시연용)
+            Text bl; bagUpBtn = Btn(v.transform, "BagUpBtn", "[디버그] 가방 +", new Color(0.4f, 0.5f, 0.35f), out bl); bl.fontSize = 24;
+            SetRect((RectTransform)bagUpBtn.transform, 660, 700, 320, 64);
             return v;
         }
 
@@ -198,7 +211,7 @@ namespace SeoulLast.EditorTools
 
             roomBtns = new List<Button>();
             roomNames = new List<string>();
-            float bw = 430, bh = 84, gap = 16, x0 = 60, y0 = 92;
+            float bw = 430, bh = 80, gap = 14, x0 = 60, y0 = 84;
             for (int i = 0; i < Rooms.Length; i++)
             {
                 int cx = i % 2, cy = i / 2;
@@ -207,9 +220,11 @@ namespace SeoulLast.EditorTools
                 roomBtns.Add(b); roomNames.Add(Rooms[i]);
             }
 
-            // 출발 버튼
+            float roomsBottom = y0 + 5 * (bh + gap); // 5행
+
+            // 출발 버튼 (지역 정보 힌트는 root의 DepartInfo가 담당)
             Text dl; departBtn = Btn(v.transform, "DepartBtn", "출발", new Color(0.85f, 0.45f, 0.25f), out dl); dl.fontSize = 36;
-            SetRect((RectTransform)departBtn.transform, (1000 - 480) / 2, y0 + 5 * (bh + gap) + 12, 480, 96);
+            SetRect((RectTransform)departBtn.transform, (1000 - 480) / 2, roomsBottom + 30, 480, 92);
             return v;
         }
 
@@ -313,6 +328,14 @@ namespace SeoulLast.EditorTools
             var p = so.FindProperty(prop);
             if (p != null) p.objectReferenceValue = value;
             else Debug.LogWarning("[MainScreenBuilder] 필드 없음: " + prop);
+        }
+
+        static void SetRefArray(SerializedObject so, string prop, Object[] values)
+        {
+            var p = so.FindProperty(prop);
+            if (p == null) { Debug.LogWarning("[MainScreenBuilder] 배열 필드 없음: " + prop); return; }
+            p.arraySize = values.Length;
+            for (int i = 0; i < values.Length; i++) p.GetArrayElementAtIndex(i).objectReferenceValue = values[i];
         }
 
         static void Wire(Button b, UnityAction call)

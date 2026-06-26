@@ -12,6 +12,13 @@ namespace SeoulLast
         [SerializeField] Text dayText;              // "DAY ??" 텍스트
         [SerializeField] GameObject backButton;     // 좌상단 '돌아가기' 버튼 (자동 show/hide)
 
+        [Header("지도뷰")]
+        [SerializeField] Text departInfo;           // 출발 버튼 위 지역 정보 텍스트
+
+        [Header("상태이상 (캐릭터 좌측 5개)")]
+        [SerializeField] Image[] statusPills;       // 5개 알약 배경
+        [SerializeField] Text[] statusTexts;        // 5개 상태 이름
+
         [Header("중앙 화면들 (서로 교체됨)")]
         [SerializeField] GameObject characterView;  // 기본(캐릭터)
         [SerializeField] GameObject lockerView;     // 사물함(창고)
@@ -21,14 +28,17 @@ namespace SeoulLast
         [SerializeField] GameObject statusView;     // 캐릭터 상태
 
         [Header("인벤토리")]
+        [SerializeField] GameObject bagArea;        // 하단 가방 영역(라벨+격자) 묶음 - 가방정리 때만 표시
         [SerializeField] RectTransform bagGridRect; // 하단 가방 격자 컨테이너 (pivot 좌상단)
         [SerializeField] RectTransform storageRect; // 창고 아이템 컨테이너 (사물함 화면 안)
         [SerializeField] RectTransform dragLayer;   // 드래그 중 아이템이 올라갈 최상단 레이어
 
         [Header("가방 설정")]
         [SerializeField] int bagWidth = 6;
-        [SerializeField] int bagHeight = 5;
-        [SerializeField] float bagCell = 135f;
+        [SerializeField] int bagHeight = 6;
+        [SerializeField] float bagCell = 110f;
+        readonly Color cActiveSlot = new Color(0.83f, 0.78f, 0.67f);
+        readonly Color cDimSlot = new Color(0.30f, 0.28f, 0.25f, 0.5f);
 
         int day = 1;
         readonly BagModel bag = new BagModel();
@@ -45,8 +55,57 @@ namespace SeoulLast
         {
             bag.Width = bagWidth;
             bag.Height = bagHeight;
+            RefreshBagDim();
             PopulateStartingItems();
             GoHome();
+        }
+
+        // ---------- 가방 단계 / 딤드 ----------
+        public void UpgradeBag()
+        {
+            bag.Stage = Mathf.Min(bag.Stage + 1, 5);
+            RefreshBagDim();
+        }
+
+        // 활성 영역(중앙 NxN) 밖 칸을 어둡게 표시
+        public void RefreshBagDim()
+        {
+            if (bagGridRect == null) return;
+            int n = 0;
+            for (int i = 0; i < bagGridRect.childCount; i++)
+            {
+                var ch = bagGridRect.GetChild(i);
+                if (ch.name != "bagslot") continue;
+                int x = n % bagWidth, y = n / bagWidth;
+                n++;
+                var img = ch.GetComponent<Image>();
+                if (img != null) img.color = bag.IsActiveCell(new Vector2Int(x, y)) ? cActiveSlot : cDimSlot;
+            }
+        }
+
+        // ---------- 상태이상 표시 ----------
+        // level: 0 정상(숨김), 1 주의, 2 위험. 주의/위험만 위에서부터 모아 표시.
+        public void SetStatuses(int[] levels, string[] labels)
+        {
+            if (statusPills == null) return;
+            int slot = 0;
+            for (int i = 0; i < statusPills.Length; i++)
+            {
+                var pill = statusPills[i];
+                if (pill == null) continue;
+
+                int lv = (levels != null && i < levels.Length) ? levels[i] : 0;
+                if (lv <= 0) { pill.gameObject.SetActive(false); continue; }
+
+                pill.gameObject.SetActive(true);
+                pill.color = lv == 1 ? new Color(0.90f, 0.72f, 0.20f) : new Color(0.85f, 0.25f, 0.22f);
+                if (statusTexts != null && i < statusTexts.Length && statusTexts[i] != null)
+                    statusTexts[i].text = (labels != null && i < labels.Length) ? labels[i] : "";
+
+                var rt = pill.rectTransform;
+                rt.anchoredPosition = new Vector2(10, -(150 + slot * 64));
+                slot++;
+            }
         }
 
         // ---------- 버튼 매핑용 public 메서드 (인스펙터 OnClick에서 선택) ----------
@@ -59,14 +118,59 @@ namespace SeoulLast
 
         // ---------- 지역 선택 / 출발 (지도뷰 버튼에서 호출) ----------
         public string SelectedRoom { get; private set; }
-        public System.Action<string> DepartRequested; // GameFlow가 구독
+        public System.Action<string> LocationChosen;   // 학교도면 [출발] → 가방정리로
+        public System.Action ExploreRequested;          // 가방정리 [탐사] → 이벤트로
+        public System.Action<string> RoomSelected;      // 방 선택 시 (정보 텍스트 갱신)
 
-        public void SelectRoom(string room) { SelectedRoom = room; }
+        public void SelectRoom(string room)
+        {
+            SelectedRoom = room;
+            if (RoomSelected != null) RoomSelected(room);
+        }
+
+        public void Explore()
+        {
+            if (ExploreRequested != null) ExploreRequested();
+        }
+
+        // ---------- 흐름 모드 (GameFlow가 호출) ----------
+        public void EnterMapMode()
+        {
+            HideCenterViews();
+            if (mapView) mapView.SetActive(true);
+            if (bagArea) bagArea.SetActive(false);
+        }
+
+        public void EnterOrganizeMode(string hint)
+        {
+            HideCenterViews();
+            if (lockerView) lockerView.SetActive(true);
+            if (bagArea) bagArea.SetActive(true);
+            LockerOpen = true;
+            LayoutStorage();
+            SetDepartInfo(hint);
+        }
+
+        void HideCenterViews()
+        {
+            if (characterView) characterView.SetActive(false);
+            if (lockerView) lockerView.SetActive(false);
+            if (mapView) mapView.SetActive(false);
+            if (diaryView) diaryView.SetActive(false);
+            if (shopView) shopView.SetActive(false);
+            if (statusView) statusView.SetActive(false);
+            LockerOpen = false;
+        }
+
+        public void SetDepartInfo(string text)
+        {
+            if (departInfo != null) departInfo.text = text;
+        }
 
         public void Depart()
         {
             if (string.IsNullOrEmpty(SelectedRoom)) return;
-            if (DepartRequested != null) DepartRequested(SelectedRoom);
+            if (LocationChosen != null) LocationChosen(SelectedRoom);
         }
 
         // 가방에 담은(=가져갈) 아이템 이름 목록

@@ -1,0 +1,61 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6aa2a7afbc13e824d869983204d074bc, type: 3}
+  m_Name: EVT-103
+  m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.EventData
+  situation: "\uC120\uBC18\uC774 \uC704\uD0DC\uB86D\uAC8C \uBB34\uB108\uC838 \uBB3C\uC790\uB97C
+    \uB36E\uACE0 \uC788\uB2E4."
+  choices:
+  - label: "\uBC27\uC904\uB85C \uBB36\uC5B4 \uB4E4\uC5B4\uB0B8\uB2E4"
+    requiredItem: "\uBC27\uC904"
+    resultText: "\uC548\uC804\uD558\uAC8C \uB4E4\uC5B4\uB0B4 \uC0DD\uC218\uB97C \uD68C\uC218\uD588\uB2E4."
+    hunger: -8
+    thirst: -10
+    pain: 0
+    fatigue: 0
+    depression: 0
+    bagUpgrade: 0
+  - label: "\uB9E8\uC190\uC73C\uB85C \uB4E4\uCD98\uB2E4"
+    requiredItem: 
+    resultText: "\uBB34\uAC8C\uC5D0 \uB20C\uB824 \uC190\uC744 \uB2E4\uCCE4\uB2E4."
+    hunger: 0
+    thirst: 0
+    pain: 15
+    fatigue: 0
+    depression: 0
+    bagUpgrade: 0
+  eventId: EVT-103
+  eventName: "\uBB34\uB108\uC9C4 \uC545\uAE30 \uC120\uBC18"
+  eventType: "\uD2B9\uC815\uC9C0\uC5ED"
+  eventCategory: 
+  probability: 100
+  hasBranch: 
+  region: "\uC74C\uC545\uC2E4"
+  regionEntryCondition: 
+  regionSpecialEffect: 
+  relatedItemId: 
+  itemOwnedResult: 
+  itemNotOwnedResult: 
+  branchAResult: 
+  branchBResult: 
+  foodWaterChange: 0
+  weaponAmmoChange: 0
+  moraleChange: 0
+  medicalSupplyChange: 0
+  failFoodWater: 0
+  failMorale: 0
+  failMedical: 0
+  statusEffect: 
+  statusDuration: 0
+  statusModifier: 
+  difficulty: 
+  note: 

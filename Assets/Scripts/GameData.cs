@@ -62,8 +62,18 @@ namespace SeoulLast
     // 4x4 가방 점유 모델
     public class BagModel
     {
-        public int Width = 6, Height = 5;
+        public int Width = 6, Height = 6;
         public List<PlacedItem> Placed = new List<PlacedItem>();
+
+        // 가방 5단계: 1=중앙 2x2, 2=3x3, 3=4x4, 4=5x5, 5=6x6 (나머지는 딤드=배치불가)
+        public int Stage = 1;
+        public int ActiveSize => Mathf.Clamp(Stage + 1, 2, 6);
+        public int ActiveOffset => (6 - ActiveSize) / 2;
+        public bool IsActiveCell(Vector2Int c)
+        {
+            int o = ActiveOffset, s = ActiveSize;
+            return c.x >= o && c.x < o + s && c.y >= o && c.y < o + s;
+        }
 
         bool InBounds(Vector2Int c) => c.x >= 0 && c.x < Width && c.y >= 0 && c.y < Height;
 
@@ -84,7 +94,7 @@ namespace SeoulLast
             foreach (var cell in def.Cells)
             {
                 var c = origin + cell;
-                if (!InBounds(c) || occ.Contains(c)) return false;
+                if (!InBounds(c) || !IsActiveCell(c) || occ.Contains(c)) return false;
             }
             return true;
         }
