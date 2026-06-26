@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6aa2a7afbc13e824d869983204d074bc, type: 3}
+  m_Name: EVT-G003
+  m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.EventData
+  eventId: EVT-G003
+  eventName: "\uB0B4\uBD80 \uAC08\uB4F1"
+  eventType: "\uC77C\uBC18"
+  eventCategory: "\uB0B4\uBD80"
+  probability: 12
+  hasBranch: "\uBD84\uAE30\uD615"
+  region: '-'
+  regionEntryCondition: '-'
+  regionSpecialEffect: '-'
+  relatedItemId: '-'
+  itemOwnedResult: '-'
+  itemNotOwnedResult: '-'
+  branchAResult: "\uB300\uD654\uB85C \uAC08\uB4F1\uC744 \uD574\uC18C\uD55C\uB2E4.
+    \uC0AC\uAE30 \uC18C\uD3ED \uC0C1\uC2B9."
+  branchBResult: "\uAC08\uB4F1\uC774 \uD3ED\uBC1C. \uC0DD\uC874\uC790 1\uBA85 \uC774\uD0C8
+    \uAC00\uB2A5."
+  foodWaterChange: -10
+  weaponAmmoChange: 0
+  moraleChange: 15
+  medicalSupplyChange: -5
+  statusEffect: "\uBD88\uC548"
+  statusDuration: 2
+  statusModifier: "\uBD88\uC548: \uB0B4\uBD80 \uC774\uBCA4\uD2B8 \uD655\uB960 +8%"
+  difficulty: C
+  note: "\uC0AC\uAE30 20 \uC774\uD558 \uC2DC \uBC1C\uC0DD \uD655\uB960 2\uBC30"

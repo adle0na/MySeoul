@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1b1599fe0cca7ac4faf69b209d7b9434, type: 3}
+  m_Name: MED003
+  m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.ItemData
+  itemId: MED003
+  itemName: "\uAC01\uC131\uC81C"
+  itemType: "\uD68C\uBCF5"
+  durability: -1
+  description: "\uC885\uB9D0 \uC774\uC804 \uAD70\uC0AC\uC6A9 \uAC01\uC131 \uC57D\uBB3C.
+    \uAC15\uB825\uD558\uC9C0\uB9CC \uBD80\uC791\uC6A9\uC774 \uC788\uB2E4."
+  sellGold: 150
+  buyGold: 150
+  cashPrice: -1
+  canBeDamaged: 0
+  specialEvent: 
+  resourcePath: 
+  resourceName: 
+  shape: 0101010000000001000000000000010000000000000000000000000000000000000000
