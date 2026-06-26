@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1b1599fe0cca7ac4faf69b209d7b9434, type: 3}
+  m_Name: RES002
+  m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.ItemData
+  itemId: RES002
+  itemName: "\uC815\uC218\uB41C \uBB3C"
+  itemType: "\uC790\uC6D0"
+  durability: -1
+  description: "\uC815\uC218 \uD0DC\uBE14\uB9BF\uC73C\uB85C \uCC98\uB9AC\uD55C \uAE68\uB057\uD55C
+    \uBB3C. \uC0DD\uC874\uC5D0 \uD544\uC218\uC801\uC774\uB2E4."
+  sellGold: 15
+  buyGold: 15
+  cashPrice: -1
+  canBeDamaged: 0
+  specialEvent: 
+  resourcePath: 
+  resourceName: 
+  shape: 0100000000000001000000000000000000000000000000000000000000000000000000
