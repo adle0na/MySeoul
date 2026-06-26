@@ -15,11 +15,11 @@ MonoBehaviour:
   eventId: EVT-L001
   eventName: "\uBCD1\uC6D0 \uC57D\uD488 \uCC3D\uACE0 \uC218\uC0C9"
   eventType: "\uD2B9\uC815\uC9C0\uC5ED"
-  eventCategory: "\uD0D0\uC0C9"
+  eventCategory: 
   probability: 8
-  hasBranch: "\uBD84\uAE30\uD615"
-  region: "\uB3C4\uBD09\uAD6C"
-  regionEntryCondition: "\uD0D0\uC0C9 \uC2A4\uD0AC or \uC758\uB8CC \uC9C0\uC2DD"
+  hasBranch: 
+  region: "\uC74C\uC545\uC2E4"
+  regionEntryCondition: 
   regionSpecialEffect: "\uC758\uB8CC\uD488 \uBC1C\uACAC \uD655\uB960 +30%"
   relatedItemId: "\uC190\uC804\uB4F1"
   itemOwnedResult: "\uAD6C\uC11D\uAE4C\uC9C0 \uC218\uC0C9, \uC758\uB8CC\uD488 \uB300\uB7C9
@@ -31,8 +31,8 @@ MonoBehaviour:
     \uCC59\uAE34\uB2E4."
   foodWaterChange: 0
   weaponAmmoChange: 0
-  moraleChange: 10
-  medicalSupplyChange: 20
+  moraleChange: 0
+  medicalSupplyChange: 0
   statusEffect: "\uC5C6\uC74C"
   statusDuration: 0
   statusModifier: '-'

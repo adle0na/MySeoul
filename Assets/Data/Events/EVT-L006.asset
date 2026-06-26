@@ -15,11 +15,11 @@ MonoBehaviour:
   eventId: EVT-L006
   eventName: "\uC1FC\uD551\uBAB0 \uC0DD\uC874\uC790 \uAC70\uC810"
   eventType: "\uD2B9\uC815\uC9C0\uC5ED"
-  eventCategory: "\uC870\uC6B0"
+  eventCategory: 
   probability: 11
-  hasBranch: "\uBD84\uAE30\uD615"
-  region: "\uB9C8\uD3EC\uAD6C"
-  regionEntryCondition: "\uC5C6\uC74C"
+  hasBranch: 
+  region: "\uACFC\uD559\uC2E4"
+  regionEntryCondition: 
   regionSpecialEffect: "\uBB3C\uBB3C\uAD50\uD658 \uAC00\uB2A5, \uAD50\uC804 \uC704\uD5D8
     \uC0C1\uC874"
   relatedItemId: "\uC5EC\uC720 \uC790\uC6D0 (\uC2DD\uB7C9 / \uBB34\uAE30 \uB4F1)"
@@ -30,9 +30,9 @@ MonoBehaviour:
     \uC313\uB294\uB2E4. \uAD50\uD658 \uC131\uACF5."
   branchBResult: "\uBE48\uC190\uC73C\uB85C \uC811\uADFC. \uC801\uB300\uAC10\uC744
     \uC0AC\uBA70 \uCAD3\uACA8\uB09C\uB2E4."
-  foodWaterChange: 10
-  weaponAmmoChange: 5
-  moraleChange: 20
+  foodWaterChange: 0
+  weaponAmmoChange: 0
+  moraleChange: 0
   medicalSupplyChange: 0
   statusEffect: "\uC5C6\uC74C"
   statusDuration: 0

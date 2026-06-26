@@ -57,6 +57,26 @@ namespace SeoulLast
         public void OpenStatus() => ShowCenter(statusView, true);   // 캐릭터 상태 (우상단)
         public void GoHome() => ShowCenter(characterView, false);   // 돌아가기 (캐릭터)
 
+        // ---------- 지역 선택 / 출발 (지도뷰 버튼에서 호출) ----------
+        public string SelectedRoom { get; private set; }
+        public System.Action<string> DepartRequested; // GameFlow가 구독
+
+        public void SelectRoom(string room) { SelectedRoom = room; }
+
+        public void Depart()
+        {
+            if (string.IsNullOrEmpty(SelectedRoom)) return;
+            if (DepartRequested != null) DepartRequested(SelectedRoom);
+        }
+
+        // 가방에 담은(=가져갈) 아이템 이름 목록
+        public List<string> HeldItemNames()
+        {
+            var list = new List<string>();
+            foreach (var p in bag.Placed) list.Add(p.Def.Name);
+            return list;
+        }
+
         // ---------- 화면 전환 ----------
         void ShowCenter(GameObject view, bool isSub)
         {
