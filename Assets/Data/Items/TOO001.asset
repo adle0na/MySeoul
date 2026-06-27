@@ -16,7 +16,7 @@ MonoBehaviour:
   itemName: "\uBE60\uB8E8"
   itemType: "\uB3C4\uAD6C"
   durability: 3
-  description: "\uCCB4\uC721\uCC3D\uACE0\uC5D0\uC11C \uC90D\uC90D\uD55C \uBE60\uB8E8. "
+  description: "\uCCB4\uC721\uCC3D\uACE0\uC5D0\uC11C \uC90D\uC90D\uD55C \uBE60\uB8E8."
   sellGold: 0
   buyGold: 0
   cashPrice: -1

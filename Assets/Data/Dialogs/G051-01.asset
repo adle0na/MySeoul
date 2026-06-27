@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1eec2317928f40243841964eee97936b, type: 3}
+  m_Name: G051-01
+  m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.DialogData
+  dialogId: G051-01
+  spawnItemId: 
+  description: "\uC0AC\uBB3C\uD568\uC5D0\uC11C \uB77D\uCE74 \uC2A4\uD504\uB808\uC774
+    \uCE94\uC774 \uB098\uC628\uB2E4. \uD754\uB4E4\uC5B4\uBCF4\uB2C8 \uC544\uC9C1
+    \uCC28 \uC788\uB2E4. \uCE58\uC775, \uC18C\uB9AC\uB3C4 \uACBD\uCF8C\uD558\uB2E4."
+  choices:
+  - label: "\uCC59\uAE34\uB2E4"
+    requiredItem: 
+    resultText: 
+    hunger: 0
+    thirst: 0
+    pain: 0
+    fatigue: 0
+    bagUpgrade: 0
+    opensInventory: 0
+    newState: 
+    nextEventId: G051-02
+    correct: 0
+    rewardItem: 
+    loseRandomItem: 0
+  - label: "\uB454\uB2E4"
+    requiredItem: 
+    resultText: 
+    hunger: 0
+    thirst: 0
+    pain: 0
+    fatigue: 0
+    bagUpgrade: 0
+    opensInventory: 0
+    newState: 
+    nextEventId: G051-03
+    correct: 0
+    rewardItem: 
+    loseRandomItem: 0

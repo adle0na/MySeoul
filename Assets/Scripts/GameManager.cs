@@ -1,8 +1,9 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
+using TMPro;
 
 namespace SeoulLast
 {
@@ -39,11 +40,11 @@ namespace SeoulLast
         RectTransform root;
         GameObject mapPanel, eventPanel, organizePanel, endingPanel;
         RectTransform mapList;
-        Text dayText, hpText;
-        Text eventTitle, eventBody, eventBtnLabel;
+        TextMeshProUGUI dayText, hpText;
+        TextMeshProUGUI eventTitle, eventBody, eventBtnLabel;
         Button eventBtn;
-        Text organizeNextLabel;
-        Text endingTitle, endingBody;
+        TextMeshProUGUI organizeNextLabel;
+        TextMeshProUGUI endingTitle, endingBody;
 
         void Start()
         {
@@ -95,18 +96,18 @@ namespace SeoulLast
         {
             var bar = UIFactory.Panel(root, "Hud", new Color(0.07f, 0.08f, 0.10f));
             UIFactory.SetRect(bar.rectTransform, 0, 0, W, 110);
-            dayText = UIFactory.Label(bar.transform, "Day", "DAY 1 / 7", 40, TextAnchor.MiddleLeft, Color.white);
+            dayText = UIFactory.Label(bar.transform, "Day", "DAY 1 / 7", 40, TextAlignmentOptions.Left, Color.white);
             UIFactory.SetRect(dayText.rectTransform, 40, 25, 500, 60);
-            hpText = UIFactory.Label(bar.transform, "Hp", "HP 100", 40, TextAnchor.MiddleRight, new Color(0.95f, 0.55f, 0.55f));
+            hpText = UIFactory.Label(bar.transform, "Hp", "HP 100", 40, TextAlignmentOptions.Right, new Color(0.95f, 0.55f, 0.55f));
             UIFactory.SetRect(hpText.rectTransform, W - 540, 25, 500, 60);
         }
 
         void BuildMapPanel()
         {
             mapPanel = UIFactory.Panel(root, "MapPanel", cBg).gameObject;
-            var title = UIFactory.Label(mapPanel.transform, "Title", "어디로 이동할까?", 46, TextAnchor.MiddleCenter, Color.white);
+            var title = UIFactory.Label(mapPanel.transform, "Title", "어디로 이동할까?", 46, TextAlignmentOptions.Center, Color.white);
             UIFactory.SetRect(title.rectTransform, 60, 130, W - 120, 70);
-            var sub = UIFactory.Label(mapPanel.transform, "Sub", "파란 지역만 이동할 수 있습니다. (서울 25개 구)", 24, TextAnchor.MiddleCenter, new Color(0.7f, 0.72f, 0.78f));
+            var sub = UIFactory.Label(mapPanel.transform, "Sub", "파란 지역만 이동할 수 있습니다. (서울 25개 구)", 24, TextAlignmentOptions.Center, new Color(0.7f, 0.72f, 0.78f));
             UIFactory.SetRect(sub.rectTransform, 60, 205, W - 120, 46);
 
             // 지도 보드 배경
@@ -118,7 +119,7 @@ namespace SeoulLast
             var river = UIFactory.Img(mapPanel.transform, "Han", new Color(0.24f, 0.44f, 0.70f, 0.55f));
             UIFactory.SetRect(river.rectTransform, MapX0, MapY0 + MapH * 0.48f, MapW, 64);
             river.raycastTarget = false;
-            var hanLbl = UIFactory.Label(mapPanel.transform, "HanL", "한 강", 24, TextAnchor.MiddleCenter, new Color(0.82f, 0.9f, 1f, 0.85f));
+            var hanLbl = UIFactory.Label(mapPanel.transform, "HanL", "한 강", 24, TextAlignmentOptions.Center, new Color(0.82f, 0.9f, 1f, 0.85f));
             UIFactory.SetRect(hanLbl.rectTransform, MapX0 + MapW * 0.5f - 80, MapY0 + MapH * 0.48f + 14, 160, 40);
             hanLbl.raycastTarget = false;
 
@@ -131,12 +132,12 @@ namespace SeoulLast
         void BuildEventPanel()
         {
             eventPanel = UIFactory.Panel(root, "EventPanel", cBg).gameObject;
-            eventTitle = UIFactory.Label(eventPanel.transform, "Title", "", 50, TextAnchor.MiddleCenter, new Color(0.95f, 0.85f, 0.5f));
+            eventTitle = UIFactory.Label(eventPanel.transform, "Title", "", 50, TextAlignmentOptions.Center, new Color(0.95f, 0.85f, 0.5f));
             UIFactory.SetRect(eventTitle.rectTransform, 60, 160, W - 120, 80);
 
             var box = UIFactory.Panel(eventPanel.transform, "Box", cPanel);
             UIFactory.SetRect(box.rectTransform, 80, 290, W - 160, 760);
-            eventBody = UIFactory.Label(box.transform, "Body", "", 34, TextAnchor.UpperLeft, new Color(0.92f, 0.93f, 0.96f));
+            eventBody = UIFactory.Label(box.transform, "Body", "", 34, TextAlignmentOptions.TopLeft, new Color(0.92f, 0.93f, 0.96f));
             UIFactory.SetRect(eventBody.rectTransform, 40, 40, W - 240, 680);
 
             eventBtn = UIFactory.Button(eventPanel.transform, "EventBtn", "조사한다", cBlue, null, out eventBtnLabel);
@@ -146,9 +147,9 @@ namespace SeoulLast
         void BuildOrganizePanel()
         {
             organizePanel = UIFactory.Panel(root, "OrganizePanel", cBg).gameObject;
-            var title = UIFactory.Label(organizePanel.transform, "Title", "가방을 정리하고 떠나라", 44, TextAnchor.MiddleCenter, Color.white);
+            var title = UIFactory.Label(organizePanel.transform, "Title", "가방을 정리하고 떠나라", 44, TextAlignmentOptions.Center, Color.white);
             UIFactory.SetRect(title.rectTransform, 60, 140, W - 120, 70);
-            var sub = UIFactory.Label(organizePanel.transform, "Sub", "아이템을 격자에 끌어다 놓으세요. 칸에 안 들어가면 두고 가야 합니다.", 24, TextAnchor.MiddleCenter, new Color(0.7f, 0.72f, 0.78f));
+            var sub = UIFactory.Label(organizePanel.transform, "Sub", "아이템을 격자에 끌어다 놓으세요. 칸에 안 들어가면 두고 가야 합니다.", 24, TextAlignmentOptions.Center, new Color(0.7f, 0.72f, 0.78f));
             UIFactory.SetRect(sub.rectTransform, 60, 210, W - 120, 60);
 
             // 격자 배경 + 컨테이너 (가방 크기 기반으로 계산)
@@ -168,7 +169,7 @@ namespace SeoulLast
             float trayTop = GridTop + gh + 50f;   // 격자 아래
 
             // 트레이
-            var trayLabel = UIFactory.Label(organizePanel.transform, "TrayLabel", "획득한 물건", 24, TextAnchor.UpperLeft, new Color(0.7f, 0.72f, 0.78f));
+            var trayLabel = UIFactory.Label(organizePanel.transform, "TrayLabel", "획득한 물건", 24, TextAlignmentOptions.TopLeft, new Color(0.7f, 0.72f, 0.78f));
             UIFactory.SetRect(trayLabel.rectTransform, 55, trayTop - 35, 400, 40);
             var trayBg = UIFactory.Panel(organizePanel.transform, "TrayBg", new Color(0.09f, 0.10f, 0.13f));
             UIFactory.SetRect(trayBg.rectTransform, 40, trayTop, W - 80, 290);
@@ -184,7 +185,7 @@ namespace SeoulLast
             var trash = UIFactory.Panel(organizePanel.transform, "Trash", cRed);
             UIFactory.SetRect(trash.rectTransform, 60, bottomTop, 360, 150);
             TrashRect = trash.rectTransform;
-            var tl = UIFactory.Label(trash.transform, "L", "여기로 끌어\n버리기", 28, TextAnchor.MiddleCenter, Color.white);
+            var tl = UIFactory.Label(trash.transform, "L", "여기로 끌어\n버리기", 28, TextAlignmentOptions.Center, Color.white);
             UIFactory.Fill(tl.rectTransform);
             tl.raycastTarget = false;
 
@@ -212,11 +213,11 @@ namespace SeoulLast
         void BuildEndingPanel()
         {
             endingPanel = UIFactory.Panel(root, "EndingPanel", new Color(0.06f, 0.06f, 0.08f)).gameObject;
-            endingTitle = UIFactory.Label(endingPanel.transform, "Title", "", 70, TextAnchor.MiddleCenter, new Color(0.95f, 0.9f, 0.6f));
+            endingTitle = UIFactory.Label(endingPanel.transform, "Title", "", 70, TextAlignmentOptions.Center, new Color(0.95f, 0.9f, 0.6f));
             UIFactory.SetRect(endingTitle.rectTransform, 60, 480, W - 120, 130);
-            endingBody = UIFactory.Label(endingPanel.transform, "Body", "", 36, TextAnchor.UpperCenter, new Color(0.9f, 0.91f, 0.94f));
+            endingBody = UIFactory.Label(endingPanel.transform, "Body", "", 36, TextAlignmentOptions.Top, new Color(0.9f, 0.91f, 0.94f));
             UIFactory.SetRect(endingBody.rectTransform, 120, 660, W - 240, 480);
-            Text restartLabel;
+            TextMeshProUGUI restartLabel;
             var restart = UIFactory.Button(endingPanel.transform, "Restart", "다시 시작", cBlue, NewGame, out restartLabel);
             UIFactory.SetRect(restart.GetComponent<RectTransform>(), (W - 480) / 2, 1300, 480, 150);
         }
@@ -262,7 +263,7 @@ namespace SeoulLast
                     string text = visited ? d.Name + "\n(방문)" : d.Name;
 
                     var captured = ev;
-                    Text lbl;
+                    TextMeshProUGUI lbl;
                     var btn = UIFactory.Button(mapList, "tile_" + d.Name, text, col,
                         (active && !visited) ? (UnityEngine.Events.UnityAction)(() => OnRegion(captured)) : null,
                         out lbl);
@@ -396,7 +397,7 @@ namespace SeoulLast
             }
         }
 
-        void SetButton(Button b, Text label, string text, UnityEngine.Events.UnityAction cb)
+        void SetButton(Button b, TextMeshProUGUI label, string text, UnityEngine.Events.UnityAction cb)
         {
             b.onClick.RemoveAllListeners();
             label.text = text;

@@ -16,7 +16,7 @@ MonoBehaviour:
   spawnItemId: 
   description: "\uBCF5\uB3C4 \uB05D\uC5D0 \uC790\uD310\uAE30\uAC00 \uC11C \uC788\uB2E4.
     \uC138\uC0C1\uC774 \uB9DD\uD588\uB294\uB370\uB3C4 \uC598\uB294 \uC544\uC9C1 \uBD88\uC774
-    \uCF1C\uC838 \uC788\uB124. \uB048\uC9C8\uAE34 \uB188.\n\n\uC720\uB9AC \uB108\uBA38\uB85C
+    \uCF1C\uC838 \uC788\uB124. \uB048\uC9C8\uAE34 \uB188. \uC720\uB9AC \uB108\uBA38\uB85C
     \uC74C\uB8CC \uCE94 \uBA87 \uAC1C\uAC00 \uBCF4\uC778\uB2E4. \uC785\uC5D0 \uCE68\uC774
     \uACE0\uC778\uB2E4. \uC9C4\uC815\uD574, \uB098."
   choices:
@@ -34,7 +34,7 @@ MonoBehaviour:
     correct: 0
     rewardItem: 
     loseRandomItem: 0
-  - label: "\uB4DC\uB77C\uC774\uBC84\uB85C \uC790\uD310\uAE30\uB97C \uBD84\uD574\uD55C\uB2E4."
+  - label: "\uB4DC\uB77C\uC774\uBC84\uB85C \uC790\uD310\uAE30\uB97C \uBD84\uD574\uD55C\uB2E4"
     requiredItem: TOO002
     resultText: 
     hunger: 0
@@ -48,7 +48,7 @@ MonoBehaviour:
     correct: 0
     rewardItem: 
     loseRandomItem: 0
-  - label: "\uBB34\uC2DC\uD558\uACE0 \uADF8\uB0E5 \uC9C0\uB098\uAC04\uB2E4."
+  - label: "\uBB34\uC2DC\uD558\uACE0 \uC9C0\uB098\uAC04\uB2E4"
     requiredItem: 
     resultText: 
     hunger: 0

@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6aa2a7afbc13e824d869983204d074bc, type: 3}
+  m_Name: EVT-G025
+  m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.EventData
+  minLevel: 1
+  startDialogId: G025-01
+  dayMin: 1
+  dayMax: 99
+  endingId: 
+  situation: 
+  choices: []
+  objectId: 
+  description: 
+  eventId: EVT-G025
+  eventName: EVT-G025
+  eventType: "\uC77C\uBC18"
+  eventCategory: 
+  probability: 0
+  hasBranch: 
+  region: 
+  regionEntryCondition: 
+  regionSpecialEffect: 
+  relatedItemId: 
+  itemOwnedResult: 
+  itemNotOwnedResult: 
+  branchAResult: 
+  branchBResult: 
+  foodWaterChange: 0
+  weaponAmmoChange: 0
+  moraleChange: 0
+  medicalSupplyChange: 0
+  failFoodWater: 0
+  failMorale: 0
+  failMedical: 0
+  statusEffect: 
+  statusDuration: 0
+  statusModifier: 
+  difficulty: 
+  note: "\uCE60\uD310 \uB099\uC11C"
