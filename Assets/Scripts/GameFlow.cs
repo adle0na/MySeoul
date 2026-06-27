@@ -1,7 +1,8 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 using SeoulLast.Data;
 
 namespace SeoulLast
@@ -58,16 +59,17 @@ namespace SeoulLast
 
         // ---- UI ----
         GameObject startPanel, cutscenePanel, bagPanel, eventPanel, endingPanel, gameOverPanel, restPanel, mapPanel;
-        Text bagBody, eventTitle, eventBody, endingBody, goBody, restBody, bagBtnLabel;
+        TextMeshProUGUI bagBody, eventTitle, eventBody, endingBody, goBody, restBody, bagBtnLabel;
         RectTransform choiceArea, mapArea;
+        GameObject choiceButtonPrefab;
         RectTransform gridRect, slotsRect, trayRect, trashZone, dragLayer;
-        Button useBtn; Text useBtnLabel; PlacedItem selectedItem;
+        Button useBtn; TextMeshProUGUI useBtnLabel; PlacedItem selectedItem;
         System.Action bagOnDone;        // 가방 정비 완료 시 동작(맥락별)
 
         // ---- Explore 화면 (사이드스크롤 연출) ----
-        Text dayText;                   // 상단바 "DAY n · 장소"
+        TextMeshProUGUI dayText;                   // 상단바 "DAY n · 장소"
         Image[] statusIcon = new Image[4];   // 좌측 상태레일 아이콘
-        Text[] statusLabel = new Text[4];    // 상태 이름
+        TextMeshProUGUI[] statusLabel = new TextMeshProUGUI[4];    // 상태 이름
         RawImage bgRaw;                 // 인피니티 스크롤 배경
         Image charImg;                  // 메인 캐릭터(스프라이트, 추후 Spine 교체)
         Image itemImg;                  // 다가오는 아이템
@@ -105,24 +107,25 @@ namespace SeoulLast
             endingPanel = c.Find("EndingPanel").gameObject;
             gameOverPanel = c.Find("GameOverPanel").gameObject;
 
-            bagBody = c.Find("BagPanel/Info").GetComponent<Text>();
-            eventTitle = c.Find("EventPanel/Card/T").GetComponent<Text>();
-            eventBody = c.Find("EventPanel/Card/B").GetComponent<Text>();
-            endingBody = c.Find("EndingPanel/Box/B").GetComponent<Text>();
-            goBody = c.Find("GameOverPanel/Box/B").GetComponent<Text>();
-            restBody = c.Find("RestPanel/Box/B").GetComponent<Text>();
-            bagBtnLabel = c.Find("BagPanel/DayStart/Label").GetComponent<Text>();
+            bagBody = c.Find("BagPanel/Info").GetComponent<TextMeshProUGUI>();
+            eventTitle = c.Find("EventPanel/Card/TextBox/T").GetComponent<TextMeshProUGUI>();
+            eventBody = c.Find("EventPanel/Card/B").GetComponent<TextMeshProUGUI>();
+            endingBody = c.Find("EndingPanel/Box/B").GetComponent<TextMeshProUGUI>();
+            goBody = c.Find("GameOverPanel/Box/B").GetComponent<TextMeshProUGUI>();
+            restBody = c.Find("RestPanel/Box/B").GetComponent<TextMeshProUGUI>();
+            bagBtnLabel = c.Find("BagPanel/DayStart/Label").GetComponent<TextMeshProUGUI>();
 
             choiceArea = c.Find("EventPanel/Card/ChoiceArea").GetComponent<RectTransform>();
+            choiceButtonPrefab = Resources.Load<GameObject>("Prefabs/ChoiceButton");
             eventCard = c.Find("EventPanel/Card").GetComponent<RectTransform>();
-            dayText = c.Find("EventPanel/DayText").GetComponent<Text>();
+            dayText = c.Find("EventPanel/TopBar/DayText").GetComponent<TextMeshProUGUI>();
             bgRaw = c.Find("EventPanel/Bg").GetComponent<RawImage>();
             charImg = c.Find("EventPanel/Char").GetComponent<Image>();
             itemImg = c.Find("EventPanel/Item").GetComponent<Image>();
             for (int i = 0; i < 4; i++)
             {
-                statusIcon[i] = c.Find("EventPanel/Status" + i).GetComponent<Image>();
-                statusLabel[i] = c.Find("EventPanel/Status" + i + "/L").GetComponent<Text>();
+                statusIcon[i] = c.Find("EventPanel/Status_GridLayout/Status" + i).GetComponent<Image>();
+                statusLabel[i] = c.Find("EventPanel/Status_GridLayout/Status" + i + "/L").GetComponent<TextMeshProUGUI>();
             }
             bagToggleBtn = c.Find("EventPanel/BagToggle").GetComponent<Button>();
             mapArea = c.Find("MapPanel/MapArea").GetComponent<RectTransform>();
@@ -132,7 +135,7 @@ namespace SeoulLast
             trashZone = c.Find("BagPanel/Trash").GetComponent<RectTransform>();
             dragLayer = c.Find("BagPanel/DragLayer").GetComponent<RectTransform>();
             useBtn = c.Find("BagPanel/UseBtn").GetComponent<Button>();
-            useBtnLabel = c.Find("BagPanel/UseBtn/Label").GetComponent<Text>();
+            useBtnLabel = c.Find("BagPanel/UseBtn/Label").GetComponent<TextMeshProUGUI>();
 
             Wire(c, "StartPanel/StartBtn", OnStartBtn);
             Wire(c, "CutscenePanel/CutNext", BeginOnboarding);
@@ -621,12 +624,12 @@ namespace SeoulLast
             foreach (var r in regions)
             {
                 var rr = r;
-                Text tl; var b = UIFactory.Button(mapArea, "loc", r, new Color(0.32f, 0.45f, 0.6f), () => StartStage(rr), out tl);
+                TextMeshProUGUI tl; var b = UIFactory.Button(mapArea, "loc", r, new Color(0.32f, 0.45f, 0.6f), () => StartStage(rr), out tl);
                 UIFactory.SetRect(b.GetComponent<RectTransform>(), 0, y, 920, 130); y += 150;
             }
             if (regions.Count == 0)
             {
-                Text tl; var b = UIFactory.Button(mapArea, "loc", "어디든 (일반)", new Color(0.32f, 0.45f, 0.6f), () => StartStage(""), out tl);
+                TextMeshProUGUI tl; var b = UIFactory.Button(mapArea, "loc", "어디든 (일반)", new Color(0.32f, 0.45f, 0.6f), () => StartStage(""), out tl);
                 UIFactory.SetRect(b.GetComponent<RectTransform>(), 0, 0, 920, 130);
             }
             Only(mapPanel);
@@ -782,12 +785,14 @@ namespace SeoulLast
         void AddChoice(EventChoice c, int index, bool enabled, bool gatedMissing)
         {
             string lbl = gatedMissing ? $"{c.label}   (필요: {DisplayReq(c.requiredItem)})" : c.label;
-            Color col = enabled ? new Color(0.28f, 0.50f, 0.70f) : new Color(0.32f, 0.32f, 0.34f);
-            Text t; var b = UIFactory.Button(choiceArea, "choice" + index, lbl, col, null, out t);
-            t.fontSize = 27;
-            b.interactable = enabled;
-            if (enabled) { var cc = c; b.onClick.AddListener(() => OnDialogBranch(cc)); }
-            UIFactory.SetRect(b.GetComponent<RectTransform>(), 0, ChoiceY(), 920, 110);
+            var go = (GameObject)UnityEngine.Object.Instantiate(choiceButtonPrefab, choiceArea);
+            go.name = "choice" + index;
+            UIFactory.SetRect(go.GetComponent<RectTransform>(), 0, ChoiceY(), 920, 110);
+            var tmp = go.GetComponentInChildren<TextMeshProUGUI>();
+            if (tmp != null) tmp.text = lbl;
+            var btn = go.GetComponent<UnityEngine.UI.Button>();
+            btn.interactable = enabled;
+            if (enabled) { var cc = c; btn.onClick.AddListener(() => OnDialogBranch(cc)); }
         }
 
         int choiceCount;
@@ -796,8 +801,13 @@ namespace SeoulLast
         void AddConfirm(UnityEngine.Events.UnityAction onConfirm)
         {
             choiceCount = 0;
-            Text t; var b = UIFactory.Button(choiceArea, "Confirm", "확인", new Color(0.3f, 0.55f, 0.75f), onConfirm, out t);
-            UIFactory.SetRect(b.GetComponent<RectTransform>(), (920 - 460) / 2, 0, 460, 120);
+            var go = (GameObject)UnityEngine.Object.Instantiate(choiceButtonPrefab, choiceArea);
+            go.name = "Confirm";
+            UIFactory.SetRect(go.GetComponent<RectTransform>(), (920 - 460) / 2, 0, 460, 120);
+            var tmp = go.GetComponentInChildren<TextMeshProUGUI>();
+            if (tmp != null) tmp.text = "확인";
+            var btn = go.GetComponent<UnityEngine.UI.Button>();
+            if (onConfirm != null) btn.onClick.AddListener(onConfirm);
         }
 
         // ---------- UI 빌드 ----------
@@ -827,15 +837,15 @@ namespace SeoulLast
         GameObject BuildRestPanel(Transform root)
         {
             var p = UIFactory.Panel(root, "RestPanel", new Color(0.10f, 0.13f, 0.15f)); UIFactory.Fill(p.rectTransform);
-            var h = UIFactory.Label(p.transform, "H", "휴식", 46, TextAnchor.UpperCenter, new Color(0.8f, 0.92f, 0.95f));
+            var h = UIFactory.Label(p.transform, "H", "휴식", 46, TextAlignmentOptions.Top, new Color(0.8f, 0.92f, 0.95f));
             UIFactory.SetRect(h.rectTransform, 60, 130, W - 120, 80);
             var box = UIFactory.Panel(p.transform, "Box", new Color(1, 1, 1, 0.08f));
             UIFactory.SetRect(box.rectTransform, 90, 250, W - 180, 700);
-            restBody = UIFactory.Label(box.transform, "B", "", 33, TextAnchor.UpperLeft, new Color(0.85f, 0.92f, 0.95f));
+            restBody = UIFactory.Label(box.transform, "B", "", 33, TextAlignmentOptions.TopLeft, new Color(0.85f, 0.92f, 0.95f));
             UIFactory.SetRect(restBody.rectTransform, 40, 40, W - 260, 620);
-            Text bl; var b1 = UIFactory.Button(p.transform, "RestBag", "가방 정비", new Color(0.3f, 0.55f, 0.45f), () => ShowBag(ShowRest, "휴식으로 →"), out bl);
+            TextMeshProUGUI bl; var b1 = UIFactory.Button(p.transform, "RestBag", "가방 정비", new Color(0.3f, 0.55f, 0.45f), () => ShowBag(ShowRest, "휴식으로 →"), out bl);
             UIFactory.SetRect(b1.GetComponent<RectTransform>(), (W - 460) / 2f, 1300, 460, 140);
-            Text bl2; var b2 = UIFactory.Button(p.transform, "RestMap", "지도 → 다음 장소", new Color(0.85f, 0.55f, 0.3f), ShowMap, out bl2);
+            TextMeshProUGUI bl2; var b2 = UIFactory.Button(p.transform, "RestMap", "지도 → 다음 장소", new Color(0.85f, 0.55f, 0.3f), ShowMap, out bl2);
             UIFactory.SetRect(b2.GetComponent<RectTransform>(), (W - 460) / 2f, 1470, 460, 140);
             return p.gameObject;
         }
@@ -843,7 +853,7 @@ namespace SeoulLast
         GameObject BuildMapPanel(Transform root)
         {
             var p = UIFactory.Panel(root, "MapPanel", new Color(0.09f, 0.11f, 0.14f)); UIFactory.Fill(p.rectTransform);
-            var h = UIFactory.Label(p.transform, "H", "지도 — 다음 장소 선택", 42, TextAnchor.UpperCenter, new Color(0.85f, 0.9f, 0.95f));
+            var h = UIFactory.Label(p.transform, "H", "지도 — 다음 장소 선택", 42, TextAlignmentOptions.Top, new Color(0.85f, 0.9f, 0.95f));
             UIFactory.SetRect(h.rectTransform, 60, 150, W - 120, 80);
             var areaGO = new GameObject("MapArea", typeof(RectTransform));
             mapArea = areaGO.GetComponent<RectTransform>(); mapArea.SetParent(p.transform, false);
@@ -854,9 +864,9 @@ namespace SeoulLast
         GameObject Simple(Transform root, string name, Color bg, string text, string btn, UnityEngine.Events.UnityAction onClick)
         {
             var p = UIFactory.Panel(root, name, bg); UIFactory.Fill(p.rectTransform);
-            var t = UIFactory.Label(p.transform, "T", text, 40, TextAnchor.MiddleCenter, Color.white);
+            var t = UIFactory.Label(p.transform, "T", text, 40, TextAlignmentOptions.Center, Color.white);
             UIFactory.SetRect(t.rectTransform, 80, 500, W - 160, 520);
-            Text bl; var b = UIFactory.Button(p.transform, name + "Btn", btn, new Color(0.3f, 0.55f, 0.45f), onClick, out bl);
+            TextMeshProUGUI bl; var b = UIFactory.Button(p.transform, name + "Btn", btn, new Color(0.3f, 0.55f, 0.45f), onClick, out bl);
             UIFactory.SetRect(b.GetComponent<RectTransform>(), (W - 460) / 2, 1250, 460, 150);
             // 스타트 버튼 이름 고정 (테스트용)
             if (name == "StartPanel") b.gameObject.name = "StartBtn";
@@ -864,16 +874,16 @@ namespace SeoulLast
             return p.gameObject;
         }
 
-        GameObject BuildText(Transform root, string name, Color bg, string head, Color headCol, out Text body, string btn, UnityEngine.Events.UnityAction onClick)
+        GameObject BuildText(Transform root, string name, Color bg, string head, Color headCol, out TextMeshProUGUI body, string btn, UnityEngine.Events.UnityAction onClick)
         {
             var p = UIFactory.Panel(root, name, bg); UIFactory.Fill(p.rectTransform);
-            var h = UIFactory.Label(p.transform, "H", head, 46, TextAnchor.UpperCenter, headCol);
+            var h = UIFactory.Label(p.transform, "H", head, 46, TextAlignmentOptions.Top, headCol);
             UIFactory.SetRect(h.rectTransform, 60, 130, W - 120, 80);
             var box = UIFactory.Panel(p.transform, "Box", new Color(1, 1, 1, 0.08f));
             UIFactory.SetRect(box.rectTransform, 90, 250, W - 180, 820);
-            body = UIFactory.Label(box.transform, "B", "", 33, TextAnchor.UpperLeft, headCol);
+            body = UIFactory.Label(box.transform, "B", "", 33, TextAlignmentOptions.TopLeft, headCol);
             UIFactory.SetRect(body.rectTransform, 40, 40, W - 260, 740);
-            Text bl; var b = UIFactory.Button(p.transform, name + "Btn", btn, new Color(0.45f, 0.42f, 0.3f), onClick, out bl);
+            TextMeshProUGUI bl; var b = UIFactory.Button(p.transform, name + "Btn", btn, new Color(0.45f, 0.42f, 0.3f), onClick, out bl);
             UIFactory.SetRect(b.GetComponent<RectTransform>(), (W - 460) / 2, 1180, 460, 150);
             return p.gameObject;
         }
@@ -881,9 +891,9 @@ namespace SeoulLast
         GameObject BuildBagPanel(Transform root)
         {
             var p = UIFactory.Panel(root, "BagPanel", new Color(0.14f, 0.13f, 0.12f)); UIFactory.Fill(p.rectTransform);
-            var h = UIFactory.Label(p.transform, "H", "가방 정비", 44, TextAnchor.UpperCenter, Color.white);
+            var h = UIFactory.Label(p.transform, "H", "가방 정비", 44, TextAlignmentOptions.Top, Color.white);
             UIFactory.SetRect(h.rectTransform, 60, 60, W - 120, 70);
-            bagBody = UIFactory.Label(p.transform, "Info", "", 25, TextAnchor.UpperCenter, new Color(0.85f, 0.85f, 0.8f));
+            bagBody = UIFactory.Label(p.transform, "Info", "", 25, TextAlignmentOptions.Top, new Color(0.85f, 0.85f, 0.8f));
             UIFactory.SetRect(bagBody.rectTransform, 40, 140, W - 80, 60);
 
             // 그리드 (배경 + 슬롯 + 아이템 레이어)
@@ -911,7 +921,7 @@ namespace SeoulLast
             float trashX = trayX + TRAY_W + GAP;
             var tbg = UIFactory.Img(p.transform, "TrayBG", new Color(0.20f, 0.19f, 0.17f));
             UIFactory.SetRect(tbg.rectTransform, trayX, ty, TRAY_W, 300);
-            var tlb = UIFactory.Label(tbg.transform, "l", "획득 대기 (그리드로 끌어 보관)", 22, TextAnchor.UpperLeft, new Color(0.8f, 0.8f, 0.7f));
+            var tlb = UIFactory.Label(tbg.transform, "l", "획득 대기 (그리드로 끌어 보관)", 22, TextAlignmentOptions.TopLeft, new Color(0.8f, 0.8f, 0.7f));
             tlb.raycastTarget = false; UIFactory.SetRect(tlb.rectTransform, 14, 8, TRAY_W - 28, 32);
             var trayGO = new GameObject("Tray", typeof(RectTransform));
             trayRect = trayGO.GetComponent<RectTransform>(); trayRect.SetParent(p.transform, false);
@@ -920,7 +930,7 @@ namespace SeoulLast
             var tz = UIFactory.Img(p.transform, "Trash", new Color(0.40f, 0.18f, 0.18f));
             trashZone = tz.rectTransform;
             UIFactory.SetRect(trashZone, trashX, ty, TRASH_W, 300);
-            var tzl = UIFactory.Label(tz.transform, "l", "여기로 끌어\n버리기", 26, TextAnchor.MiddleCenter, new Color(0.95f, 0.7f, 0.7f));
+            var tzl = UIFactory.Label(tz.transform, "l", "여기로 끌어\n버리기", 26, TextAlignmentOptions.Center, new Color(0.95f, 0.7f, 0.7f));
             tzl.raycastTarget = false; UIFactory.Fill(tzl.rectTransform);
 
             // 회복 아이템 사용 버튼 (아이템 선택 시 활성화)
@@ -960,7 +970,7 @@ namespace SeoulLast
             // 상단바 (DAY · 장소)
             var bar = UIFactory.Img(p.transform, "TopBar", new Color(0.10f, 0.09f, 0.07f, 0.9f)); bar.raycastTarget = false;
             UIFactory.SetRect(bar.rectTransform, 0, 0, W, 110);
-            dayText = UIFactory.Label(p.transform, "DayText", "DAY 1", 36, TextAnchor.MiddleLeft, new Color(0.96f, 0.9f, 0.78f));
+            dayText = UIFactory.Label(p.transform, "DayText", "DAY 1", 36, TextAlignmentOptions.Left, new Color(0.96f, 0.9f, 0.78f));
             UIFactory.SetRect(dayText.rectTransform, 44, 18, W - 88, 74); dayText.raycastTarget = false;
 
             // 좌측 상태 레일 (평소 숨김)
@@ -969,7 +979,7 @@ namespace SeoulLast
                 var ic = UIFactory.Img(p.transform, "Status" + i, new Color(1, 1, 1, 0.95f)); ic.raycastTarget = false;
                 UIFactory.SetRect(ic.rectTransform, 18, 150 + i * 116, 96, 96);
                 statusIcon[i] = ic;
-                var l = UIFactory.Label(ic.transform, "L", StatRail[i], 18, TextAnchor.LowerCenter, Color.white);
+                var l = UIFactory.Label(ic.transform, "L", StatRail[i], 18, TextAlignmentOptions.Bottom, Color.white);
                 UIFactory.Fill(l.rectTransform); l.raycastTarget = false;
                 statusLabel[i] = l;
                 ic.gameObject.SetActive(false);
@@ -979,16 +989,16 @@ namespace SeoulLast
             var card = UIFactory.Panel(p.transform, "Card", new Color(0.10f, 0.09f, 0.08f, 0.93f));
             eventCard = card.rectTransform;
             UIFactory.SetRect(eventCard, 50, 1130, W - 100, 560);
-            eventTitle = UIFactory.Label(eventCard, "T", "", 32, TextAnchor.UpperLeft, new Color(0.95f, 0.85f, 0.5f));
+            eventTitle = UIFactory.Label(eventCard, "T", "", 32, TextAlignmentOptions.TopLeft, new Color(0.95f, 0.85f, 0.5f));
             UIFactory.SetRect(eventTitle.rectTransform, 36, 22, W - 180, 56);
-            eventBody = UIFactory.Label(eventCard, "B", "", 30, TextAnchor.UpperLeft, new Color(0.93f, 0.94f, 0.97f));
+            eventBody = UIFactory.Label(eventCard, "B", "", 30, TextAlignmentOptions.TopLeft, new Color(0.93f, 0.94f, 0.97f));
             UIFactory.SetRect(eventBody.rectTransform, 36, 84, W - 180, 150);
             var caGO = new GameObject("ChoiceArea", typeof(RectTransform));
             choiceArea = caGO.GetComponent<RectTransform>(); choiceArea.SetParent(eventCard, false);
             UIFactory.SetRect(choiceArea, 36, 244, W - 180, 300);
 
             // 하단 가방 토글
-            Text bt; bagToggleBtn = UIFactory.Button(p.transform, "BagToggle", "가방 ▲", new Color(0.5f, 0.4f, 0.25f), OnBagToggle, out bt);
+            TextMeshProUGUI bt; bagToggleBtn = UIFactory.Button(p.transform, "BagToggle", "가방 ▲", new Color(0.5f, 0.4f, 0.25f), OnBagToggle, out bt);
             UIFactory.SetRect(bagToggleBtn.GetComponent<RectTransform>(), (W - 300) / 2f, 1700, 300, 110);
 
             return p.gameObject;

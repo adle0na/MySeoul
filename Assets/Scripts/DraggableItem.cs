@@ -1,6 +1,7 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using TMPro;
 
 namespace SeoulLast
 {
@@ -43,7 +44,7 @@ namespace SeoulLast
                 crt.sizeDelta = new Vector2(cell - gap * 2, cell - gap * 2);
                 crt.anchoredPosition = new Vector2(c.x * cell + gap, -(c.y * cell + gap));
             }
-            var label = UIFactory.Label(transform, "name", Model.Def.Name, 20, TextAnchor.MiddleCenter, new Color(0.1f, 0.1f, 0.1f));
+            var label = UIFactory.Label(transform, "name", Model.Def.Name, 20, TextAlignmentOptions.Center, new Color(0.1f, 0.1f, 0.1f));
             label.raycastTarget = false;
             UIFactory.Fill(label.rectTransform);
         }

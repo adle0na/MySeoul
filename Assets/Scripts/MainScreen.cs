@@ -1,37 +1,37 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 namespace SeoulLast
 {
     // 메인화면 로직(참조 기반). UI는 씬에 미리 배치하고, 아래 필드에 연결한다.
-    // UI 생성은 더 이상 코드가 하지 않음 — 씬의 오브젝트를 참조만 한다.
     public class MainScreen : MonoBehaviour, IBagHost
     {
         [Header("상단")]
-        [SerializeField] Text dayText;              // "DAY ??" 텍스트
-        [SerializeField] GameObject backButton;     // 좌상단 '돌아가기' 버튼 (자동 show/hide)
+        [SerializeField] TextMeshProUGUI dayText;
+        [SerializeField] GameObject backButton;
 
         [Header("지도뷰")]
-        [SerializeField] Text departInfo;           // 출발 버튼 위 지역 정보 텍스트
+        [SerializeField] TextMeshProUGUI departInfo;
 
         [Header("상태이상 (캐릭터 좌측 5개)")]
-        [SerializeField] Image[] statusPills;       // 5개 알약 배경
-        [SerializeField] Text[] statusTexts;        // 5개 상태 이름
+        [SerializeField] Image[] statusPills;
+        [SerializeField] TextMeshProUGUI[] statusTexts;
 
         [Header("중앙 화면들 (서로 교체됨)")]
-        [SerializeField] GameObject characterView;  // 기본(캐릭터)
-        [SerializeField] GameObject lockerView;     // 사물함(창고)
-        [SerializeField] GameObject mapView;        // 지도(학교)
-        [SerializeField] GameObject diaryView;      // 일기
-        [SerializeField] GameObject shopView;       // 상점
-        [SerializeField] GameObject statusView;     // 캐릭터 상태
+        [SerializeField] GameObject characterView;
+        [SerializeField] GameObject lockerView;
+        [SerializeField] GameObject mapView;
+        [SerializeField] GameObject diaryView;
+        [SerializeField] GameObject shopView;
+        [SerializeField] GameObject statusView;
 
         [Header("인벤토리")]
-        [SerializeField] GameObject bagArea;        // 하단 가방 영역(라벨+격자) 묶음 - 가방정리 때만 표시
-        [SerializeField] RectTransform bagGridRect; // 하단 가방 격자 컨테이너 (pivot 좌상단)
-        [SerializeField] RectTransform storageRect; // 창고 아이템 컨테이너 (사물함 화면 안)
-        [SerializeField] RectTransform dragLayer;   // 드래그 중 아이템이 올라갈 최상단 레이어
+        [SerializeField] GameObject bagArea;
+        [SerializeField] RectTransform bagGridRect;
+        [SerializeField] RectTransform storageRect;
+        [SerializeField] RectTransform dragLayer;
 
         [Header("가방 설정")]
         [SerializeField] int bagWidth = 6;
@@ -44,11 +44,10 @@ namespace SeoulLast
         readonly BagModel bag = new BagModel();
         readonly List<InvItemView> storageItems = new List<InvItemView>();
 
-        // InvItemView(IBagHost)가 참조하는 접근자
         public RectTransform BagGridRect => bagGridRect;
         public RectTransform BagDragLayer => dragLayer;
         public RectTransform StorageRect => storageRect;
-        public RectTransform TrashRect => null;   // 구 프로토타입엔 버리기 존 없음
+        public RectTransform TrashRect => null;
         public BagModel Bag => bag;
         public bool LockerOpen { get; private set; }
         public float Cell => bagCell;
@@ -61,7 +60,7 @@ namespace SeoulLast
             LayoutStorage();
         }
 
-        public void SelectItem(InvItemView item) { } // 구 프로토타입은 선택 사용 안 함
+        public void SelectItem(InvItemView item) { }
 
         void Start()
         {
@@ -72,14 +71,12 @@ namespace SeoulLast
             GoHome();
         }
 
-        // ---------- 가방 단계 / 딤드 ----------
         public void UpgradeBag()
         {
             bag.Stage = Mathf.Min(bag.Stage + 1, 5);
             RefreshBagDim();
         }
 
-        // 활성 영역(중앙 NxN) 밖 칸을 어둡게 표시
         public void RefreshBagDim()
         {
             if (bagGridRect == null) return;
@@ -95,8 +92,6 @@ namespace SeoulLast
             }
         }
 
-        // ---------- 상태이상 표시 ----------
-        // level: 0 정상(숨김), 1 주의, 2 위험. 주의/위험만 위에서부터 모아 표시.
         public void SetStatuses(int[] levels, string[] labels)
         {
             if (statusPills == null) return;
@@ -105,34 +100,29 @@ namespace SeoulLast
             {
                 var pill = statusPills[i];
                 if (pill == null) continue;
-
                 int lv = (levels != null && i < levels.Length) ? levels[i] : 0;
                 if (lv <= 0) { pill.gameObject.SetActive(false); continue; }
-
                 pill.gameObject.SetActive(true);
                 pill.color = lv == 1 ? new Color(0.90f, 0.72f, 0.20f) : new Color(0.85f, 0.25f, 0.22f);
                 if (statusTexts != null && i < statusTexts.Length && statusTexts[i] != null)
                     statusTexts[i].text = (labels != null && i < labels.Length) ? labels[i] : "";
-
                 var rt = pill.rectTransform;
                 rt.anchoredPosition = new Vector2(10, -(150 + slot * 64));
                 slot++;
             }
         }
 
-        // ---------- 버튼 매핑용 public 메서드 (인스펙터 OnClick에서 선택) ----------
-        public void OpenLocker() => ShowCenter(lockerView, true);   // 사물함(창고)
-        public void OpenMap() => ShowCenter(mapView, true);         // 지도(학교 도면)
-        public void OpenDiary() => ShowCenter(diaryView, true);     // 일기장
-        public void OpenShop() => ShowCenter(shopView, true);       // 상점
-        public void OpenStatus() => ShowCenter(statusView, true);   // 캐릭터 상태 (우상단)
-        public void GoHome() => ShowCenter(characterView, false);   // 돌아가기 (캐릭터)
+        public void OpenLocker() => ShowCenter(lockerView, true);
+        public void OpenMap() => ShowCenter(mapView, true);
+        public void OpenDiary() => ShowCenter(diaryView, true);
+        public void OpenShop() => ShowCenter(shopView, true);
+        public void OpenStatus() => ShowCenter(statusView, true);
+        public void GoHome() => ShowCenter(characterView, false);
 
-        // ---------- 지역 선택 / 출발 (지도뷰 버튼에서 호출) ----------
         public string SelectedRoom { get; private set; }
-        public System.Action<string> LocationChosen;   // 학교도면 [출발] → 가방정리로
-        public System.Action ExploreRequested;          // 가방정리 [탐사] → 이벤트로
-        public System.Action<string> RoomSelected;      // 방 선택 시 (정보 텍스트 갱신)
+        public System.Action<string> LocationChosen;
+        public System.Action ExploreRequested;
+        public System.Action<string> RoomSelected;
 
         public void SelectRoom(string room)
         {
@@ -145,7 +135,6 @@ namespace SeoulLast
             if (ExploreRequested != null) ExploreRequested();
         }
 
-        // ---------- 흐름 모드 (GameFlow가 호출) ----------
         public void EnterMapMode()
         {
             HideCenterViews();
@@ -185,7 +174,6 @@ namespace SeoulLast
             if (LocationChosen != null) LocationChosen(SelectedRoom);
         }
 
-        // 가방에 담은(=가져갈) 아이템 이름 목록
         public List<string> HeldItemNames()
         {
             var list = new List<string>();
@@ -193,7 +181,6 @@ namespace SeoulLast
             return list;
         }
 
-        // ---------- 화면 전환 ----------
         void ShowCenter(GameObject view, bool isSub)
         {
             if (characterView) characterView.SetActive(view == characterView);
@@ -203,15 +190,12 @@ namespace SeoulLast
             if (shopView) shopView.SetActive(view == shopView);
             if (statusView) statusView.SetActive(view == statusView);
             if (backButton) backButton.SetActive(isSub);
-
             LockerOpen = (view == lockerView);
             if (LockerOpen) LayoutStorage();
         }
 
-        // ---------- 인벤토리 ----------
         void PopulateStartingItems()
         {
-            // 샘플 보유 아이템 (실제 ItemData 연동은 추후)
             string[] ids = { "flashlight", "lighter", "rope", "axe", "food", "medkit", "mask", "radio" };
             foreach (var id in ids)
             {
@@ -255,7 +239,6 @@ namespace SeoulLast
             LayoutStorage();
         }
 
-        // 창고 아이템을 좌->우, 위->아래로 줄바꿈 배치
         void LayoutStorage()
         {
             if (storageRect == null) return;
@@ -268,9 +251,7 @@ namespace SeoulLast
                 float iw = it.Model.Def.Width * bagCell;
                 float ih = it.Model.Def.Height * bagCell;
                 if (x + iw > areaW - pad && x > pad)
-                {
-                    x = pad; y += rowH + pad; rowH = 0f;
-                }
+                { x = pad; y += rowH + pad; rowH = 0f; }
                 irt.anchorMin = new Vector2(0, 1);
                 irt.anchorMax = new Vector2(0, 1);
                 irt.pivot = new Vector2(0, 1);

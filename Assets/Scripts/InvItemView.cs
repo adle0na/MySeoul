@@ -1,6 +1,7 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using TMPro;
 
 namespace SeoulLast
 {
@@ -74,7 +75,7 @@ namespace SeoulLast
             }
             // 이름 + 상태(회복류 / 내구도)
             string sub = Model.Def.IsRecovery ? "" : "  x" + Model.Uses;
-            var label = UIFactory.Label(transform, "n", Model.Def.Name + sub, 20, TextAnchor.MiddleCenter, new Color(0.12f, 0.12f, 0.12f));
+            var label = UIFactory.Label(transform, "n", Model.Def.Name + sub, 20, TextAlignmentOptions.Center, new Color(0.12f, 0.12f, 0.12f));
             label.raycastTarget = false;
             UIFactory.Fill(label.rectTransform);
         }
