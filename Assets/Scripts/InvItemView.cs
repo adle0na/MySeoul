@@ -83,7 +83,7 @@ namespace SeoulLast
         public void OnBeginDrag(PointerEventData e)
         {
             Vector2 local;
-            RectTransformUtility.ScreenPointToLocalPointInRectangle(rt, e.position, e.pressEventCamera, out local);
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(rt, e.position, null, out local);
             int gx = Mathf.Clamp(Mathf.FloorToInt(local.x / cell), 0, Model.Def.Width - 1);
             int gy = Mathf.Clamp(Mathf.FloorToInt(-local.y / cell), 0, Model.Def.Height - 1);
             grabOffset = new Vector2Int(gx, gy);
@@ -104,7 +104,7 @@ namespace SeoulLast
 
             // 1) 버리기 존 위 → 폐기
             if (host.TrashRect != null &&
-                RectTransformUtility.RectangleContainsScreenPoint(host.TrashRect, e.position, e.pressEventCamera))
+                RectTransformUtility.RectangleContainsScreenPoint(host.TrashRect, e.position, null))
             {
                 host.Discard(this);
                 return;
@@ -112,7 +112,7 @@ namespace SeoulLast
 
             // 2) 그리드 위 → 배치 시도
             Vector2 local;
-            if (RectTransformUtility.ScreenPointToLocalPointInRectangle(host.BagGridRect, e.position, e.pressEventCamera, out local))
+            if (RectTransformUtility.ScreenPointToLocalPointInRectangle(host.BagGridRect, e.position, null, out local))
             {
                 float gw = host.Bag.Width * cell, gh = host.Bag.Height * cell;
                 if (local.x >= 0 && local.x <= gw && -local.y >= 0 && -local.y <= gh)
@@ -130,7 +130,7 @@ namespace SeoulLast
 
             // 3) 트레이 영역 위 → 미배치 보관
             if (host.LockerOpen && host.StorageRect != null &&
-                RectTransformUtility.RectangleContainsScreenPoint(host.StorageRect, e.position, e.pressEventCamera))
+                RectTransformUtility.RectangleContainsScreenPoint(host.StorageRect, e.position, null))
             {
                 host.MoveToStorage(this);
                 return;

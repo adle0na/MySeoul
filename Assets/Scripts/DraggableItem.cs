@@ -52,7 +52,7 @@ namespace SeoulLast
         public void OnBeginDrag(PointerEventData e)
         {
             Vector2 local;
-            RectTransformUtility.ScreenPointToLocalPointInRectangle(rt, e.position, e.pressEventCamera, out local);
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(rt, e.position, null, out local);
             int gx = Mathf.Clamp(Mathf.FloorToInt(local.x / cell), 0, Model.Def.Width - 1);
             int gy = Mathf.Clamp(Mathf.FloorToInt(-local.y / cell), 0, Model.Def.Height - 1);
             grabOffset = new Vector2Int(gx, gy);
@@ -73,7 +73,7 @@ namespace SeoulLast
 
             // 버리기 영역?
             if (gm.TrashRect != null &&
-                RectTransformUtility.RectangleContainsScreenPoint(gm.TrashRect, e.position, e.pressEventCamera))
+                RectTransformUtility.RectangleContainsScreenPoint(gm.TrashRect, e.position, null))
             {
                 if (InBag) gm.Bag.RemoveFromBag(Model);
                 gm.RemoveTrayItem(this);
@@ -83,7 +83,7 @@ namespace SeoulLast
 
             // 격자 위?
             Vector2 local;
-            if (RectTransformUtility.ScreenPointToLocalPointInRectangle(gm.GridRect, e.position, e.pressEventCamera, out local))
+            if (RectTransformUtility.ScreenPointToLocalPointInRectangle(gm.GridRect, e.position, null, out local))
             {
                 float gw = gm.Bag.Width * cell, gh = gm.Bag.Height * cell;
                 if (local.x >= 0 && local.x <= gw && -local.y >= 0 && -local.y <= gh)

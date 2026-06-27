@@ -19,7 +19,7 @@ namespace SeoulLast
 
         const float W = 1080f, H = 1920f;
         const int GRID_W = 6, GRID_H = 6;   // 그리드 최대 크기(6x6). 시작 활성영역은 중앙 2x2(Stage)
-        const float CELL = 148f;
+        const float CELL = 180f;
 
         readonly System.Random rng = new System.Random();
 
@@ -63,6 +63,7 @@ namespace SeoulLast
         RectTransform choiceArea, mapArea;
         GameObject choiceButtonPrefab;
         RectTransform gridRect, slotsRect, trayRect, trashZone, dragLayer;
+        GameObject itemTrayGO;
         Button useBtn; TextMeshProUGUI useBtnLabel; PlacedItem selectedItem;
         System.Action bagOnDone;        // 가방 정비 완료 시 동작(맥락별)
 
@@ -107,7 +108,7 @@ namespace SeoulLast
             endingPanel = c.Find("EndingPanel").gameObject;
             gameOverPanel = c.Find("GameOverPanel").gameObject;
 
-            bagBody = c.Find("BagPanel/Info").GetComponent<TextMeshProUGUI>();
+            var infoGO = c.Find("BagPanel/Info"); bagBody = infoGO != null ? infoGO.GetComponent<TextMeshProUGUI>() : null;
             eventTitle = c.Find("EventPanel/Card/TextBox/T").GetComponent<TextMeshProUGUI>();
             eventBody = c.Find("EventPanel/Card/B").GetComponent<TextMeshProUGUI>();
             endingBody = c.Find("EndingPanel/Box/B").GetComponent<TextMeshProUGUI>();
@@ -127,25 +128,26 @@ namespace SeoulLast
                 statusIcon[i] = c.Find("EventPanel/Status_GridLayout/Status" + i).GetComponent<Image>();
                 statusLabel[i] = c.Find("EventPanel/Status_GridLayout/Status" + i + "/L").GetComponent<TextMeshProUGUI>();
             }
-            bagToggleBtn = c.Find("EventPanel/BagToggle").GetComponent<Button>();
+            var bagToggleGO = c.Find("BagPanel/BagToggle"); bagToggleBtn = bagToggleGO != null ? bagToggleGO.GetComponent<Button>() : null;
             mapArea = c.Find("MapPanel/MapArea").GetComponent<RectTransform>();
             gridRect = c.Find("BagPanel/Grid").GetComponent<RectTransform>();
-            slotsRect = c.Find("BagPanel/Slots").GetComponent<RectTransform>();
-            trayRect = c.Find("BagPanel/Tray").GetComponent<RectTransform>();
-            trashZone = c.Find("BagPanel/Trash").GetComponent<RectTransform>();
-            dragLayer = c.Find("BagPanel/DragLayer").GetComponent<RectTransform>();
-            useBtn = c.Find("BagPanel/UseBtn").GetComponent<Button>();
-            useBtnLabel = c.Find("BagPanel/UseBtn/Label").GetComponent<TextMeshProUGUI>();
+            slotsRect = c.Find("BagPanel/GridBG/Slots").GetComponent<RectTransform>();
+            var trayGO = c.Find("ItemTray"); itemTrayGO = trayGO?.gameObject; trayRect = trayGO != null ? trayGO.GetComponent<RectTransform>() : null; if (itemTrayGO != null) itemTrayGO.SetActive(false);
+            var trashGO = c.Find("BagPanel/Trash"); trashZone = trashGO != null ? trashGO.GetComponent<RectTransform>() : null;
+            dragLayer = c.Find("DragLayer").GetComponent<RectTransform>();
+            var useBtnGO = c.Find("BagPanel/UseBtn"); useBtn = useBtnGO != null ? useBtnGO.GetComponent<Button>() : null;
+            var useLabelGO = c.Find("BagPanel/UseBtn/Label"); useBtnLabel = useLabelGO != null ? useLabelGO.GetComponent<TextMeshProUGUI>() : null;
 
             Wire(c, "StartPanel/StartBtn", OnStartBtn);
             Wire(c, "CutscenePanel/CutNext", BeginOnboarding);
             Wire(c, "BagPanel/DayStart", BagDone);
-            Wire(c, "BagPanel/UseBtn", OnUseBtn);
-            Wire(c, "EventPanel/BagToggle", OnBagToggle);
+            if (c.Find("BagPanel/UseBtn") != null) Wire(c, "BagPanel/UseBtn", OnUseBtn);
+            if (c.Find("BagPanel/BagToggle") != null) Wire(c, "BagPanel/BagToggle", OnBagToggle);
             Wire(c, "RestPanel/RestBag", () => ShowBag(ShowRest, "휴식으로 →"));
             Wire(c, "RestPanel/RestMap", ShowMap);
             Wire(c, "EndingPanel/EndingPanelBtn", Restart);
             Wire(c, "GameOverPanel/GameOverPanelBtn", Restart);
+            InitBagPanelPosition();
         }
 
         void Wire(Transform root, string path, UnityEngine.Events.UnityAction action)
@@ -191,20 +193,44 @@ namespace SeoulLast
             selectedItem = null;
             if (bagBtnLabel != null) bagBtnLabel.text = label;
             BuildBagScreen();
-            Only(bagPanel);
+            bagPanel.SetActive(true); StartCoroutine(SlideBag(true));
+            if (itemTrayGO != null) itemTrayGO.SetActive(tray.Count > 0);
         }
 
-        void BagDone() { var a = bagOnDone; bagOnDone = null; if (a != null) a(); }
+
+        // 조건1: 아이템을 모두 획득했을 때 한 프레임 뒤 자동 진행
+        System.Collections.IEnumerator AutoBagDone()
+        {
+            yield return null;  // 현재 프레임 드래그 처리 완료 대기
+            BagDone();
+        }
+
+        void BagDone()
+        {
+            if (isSlidingBag) return;
+            isSlidingBag = true;
+            // 조건2·3: 트레이에 남은 아이템은 포기한 것으로 간주 → 제거
+            if (tray.Count > 0)
+            {
+                // ItemTray 하위 InvItemView 오브젝트 파괴
+                if (trayRect != null)
+                    for (int i = trayRect.childCount - 1; i >= 0; i--)
+                    {
+                        var ch = trayRect.GetChild(i);
+                        if (ch.GetComponent<InvItemView>() != null)
+                            Destroy(ch.gameObject);
+                    }
+                tray.Clear();
+            }
+            if (itemTrayGO != null) itemTrayGO.SetActive(false);
+            StartCoroutine(SlideBag(false, () => { isSlidingBag = false; var a = bagOnDone; bagOnDone = null; if (a != null) a(); }));
+        }
 
         // 그리드/트레이의 아이템 뷰를 모델에서 새로 생성
         void BuildBagScreen()
         {
             for (int i = gridRect.childCount - 1; i >= 0; i--) Destroy(gridRect.GetChild(i).gameObject);
-            for (int i = trayRect.childCount - 1; i >= 0; i--)
-            {
-                var ch = trayRect.GetChild(i);
-                if (ch.GetComponent<InvItemView>() != null) Destroy(ch.gameObject);
-            }
+            if (trayRect != null) for (int i = trayRect.childCount - 1; i >= 0; i--) { var ch = trayRect.GetChild(i); if (ch.GetComponent<InvItemView>() != null) Destroy(ch.gameObject); }
             foreach (var p in bag.Placed)
             {
                 var v = NewItemView(p); v.InBag = true;
@@ -213,7 +239,7 @@ namespace SeoulLast
             foreach (var p in tray)
             {
                 var v = NewItemView(p); v.InBag = false;
-                v.transform.SetParent(trayRect, false);
+                if (trayRect != null) v.transform.SetParent(trayRect, false); else Destroy(v.gameObject);
             }
             LayoutTrayOnly();
             RecolorSlots();
@@ -248,6 +274,7 @@ namespace SeoulLast
         // 트레이 아이템(미배치) 좌→우, 위→아래 배치
         void LayoutTrayOnly()
         {
+            if (trayRect == null) return;
             float pad = 12f, x = pad, y = pad, rowH = 0f, areaW = trayRect.rect.width;
             for (int i = 0; i < trayRect.childCount; i++)
             {
@@ -305,17 +332,17 @@ namespace SeoulLast
             string warn = tray.Count > 0
                 ? $"    <color=#e0a060>미배치 {tray.Count}개 — 그리드에 넣지 않으면 버려집니다</color>"
                 : "";
-            bagBody.text = $"가방 그리드 {bag.Width}×{bag.Height}    |    {StatusSummary()}{warn}";
+            if (bagBody != null) bagBody.text = $"가방 그리드 {bag.Width}×{bag.Height}    |    {StatusSummary()}{warn}";
         }
 
         // ---------- IBagHost (그리드 드래그 콜백) ----------
         public RectTransform BagGridRect => gridRect;
         public RectTransform BagDragLayer => dragLayer;
-        public RectTransform StorageRect => trayRect;
+        public RectTransform StorageRect => trayRect != null ? trayRect : dragLayer;
         public RectTransform TrashRect => trashZone;
         public BagModel Bag => bag;
         public bool LockerOpen => true;
-        public float Cell => CELL;
+        public float Cell => (slotsRect != null && slotsRect.childCount > 0) ? slotsRect.GetChild(0).GetComponent<RectTransform>().sizeDelta.x : CELL;
 
         public void PlaceInBag(InvItemView item, Vector2Int origin)
         {
@@ -324,6 +351,9 @@ namespace SeoulLast
             item.InBag = true;
             item.AttachToBag(origin);
             LayoutTrayOnly(); UpdateUseButton(); UpdateBagInfo();
+            // 조건1: 트레이 아이템을 모두 가방에 넣었으면 자동으로 다음 단계
+            if (bagOnDone != null && tray.Count == 0)
+                StartCoroutine(AutoBagDone());
         }
 
         public void MoveToStorage(InvItemView item)
@@ -331,7 +361,7 @@ namespace SeoulLast
             if (item.InBag) bag.RemoveFromBag(item.Model);
             item.InBag = false;
             if (!tray.Contains(item.Model)) tray.Add(item.Model);
-            item.transform.SetParent(trayRect, false);
+            if (trayRect != null) item.transform.SetParent(trayRect, false); else Destroy(item.gameObject);
             LayoutTrayOnly(); UpdateUseButton(); UpdateBagInfo();
         }
 
@@ -1004,9 +1034,52 @@ namespace SeoulLast
             return p.gameObject;
         }
 
+
+        // BagPanel 슬라이드 애니메이션
+        RectTransform bagPanelRT;
+        float bagHiddenY;   // 화면 아래 숨김 Y
+        bool isSlidingBag;
+        float bagShownY;    // 표시 Y (0)
+
+        void InitBagPanelPosition()
+        {
+            bagPanelRT = bagPanel.GetComponent<RectTransform>();
+            // 캔버스 높이를 숨김 기준으로 사용
+            var canvasRT = bagPanel.transform.parent.GetComponent<RectTransform>();
+            bagHiddenY = -1830.0f;
+            bagShownY  = -800.0f;
+            // 초기 위치: 화면 아래 숨김 + 비활성
+            bagPanelRT.anchoredPosition = new Vector2(bagPanelRT.anchoredPosition.x, bagHiddenY);
+            bagPanel.SetActive(false);
+        }
+
+        System.Collections.IEnumerator SlideBag(bool show, System.Action onDone = null)
+        {
+            if (bagPanelRT == null) { onDone?.Invoke(); yield break; }
+            float duration = 0.35f;
+            float startY   = bagPanelRT.anchoredPosition.y;
+            float endY     = show ? bagShownY : bagHiddenY;
+            float elapsed  = 0f;
+            if (show) bagPanel.SetActive(true);
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsed / duration);
+                // EaseOutCubic
+                float ease = 1f - Mathf.Pow(1f - t, 3f);
+                float y = Mathf.LerpUnclamped(startY, endY, ease);
+                bagPanelRT.anchoredPosition = new Vector2(bagPanelRT.anchoredPosition.x, y);
+                yield return null;
+            }
+            bagPanelRT.anchoredPosition = new Vector2(bagPanelRT.anchoredPosition.x, endY);
+            if (!show) bagPanel.SetActive(false);
+            else isSlidingBag = false; // 슬라이드 인 완료: 버튼 다시 활성화
+            onDone?.Invoke();
+        }
+
         void HideAll()
         {
-            foreach (var g in new[] { startPanel, cutscenePanel, bagPanel, eventPanel, restPanel, mapPanel, endingPanel, gameOverPanel })
+            foreach (var g in new[] { startPanel, cutscenePanel, eventPanel, restPanel, mapPanel, endingPanel, gameOverPanel })
                 if (g) g.SetActive(false);
         }
         void Only(GameObject panel) { HideAll(); if (panel) panel.SetActive(true); }
