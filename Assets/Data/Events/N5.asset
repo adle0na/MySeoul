@@ -1,0 +1,56 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6aa2a7afbc13e824d869983204d074bc, type: 3}
+  m_Name: N5
+  m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.EventData
+  dayMin: 3
+  dayMax: 7
+  endingId: 
+  situation: "\uBCF5\uB3C4\uC5D0 \uB9E4\uCE90\uD55C \uAC00\uC2A4\uAC00 \uCC2C\uB2E4."
+  choices:
+  - label: "\uBC29\uB3C5\uBA74 \uC4F0\uACE0 \uD1B5\uACFC"
+    requiredItem: "\uBC29\uB3C5\uBA74"
+    resultText: "\uC548\uC804\uD558\uAC8C \uC9C0\uB098\uAC14\uB2E4."
+    hunger: 0
+    thirst: 0
+    pain: 0
+    fatigue: 0
+    bagUpgrade: 0
+    correct: 0
+    rewardItem: 
+    loseRandomItem: 0
+  eventId: N5
+  eventName: "\uC57D\uD488 \uB204\uCD9C"
+  eventType: 
+  eventCategory: 
+  probability: 100
+  hasBranch: 
+  region: 
+  regionEntryCondition: 
+  regionSpecialEffect: 
+  relatedItemId: 
+  itemOwnedResult: 
+  itemNotOwnedResult: 
+  branchAResult: 
+  branchBResult: 
+  foodWaterChange: 0
+  weaponAmmoChange: 0
+  moraleChange: 0
+  medicalSupplyChange: 0
+  failFoodWater: 0
+  failMorale: 0
+  failMedical: 0
+  statusEffect: 
+  statusDuration: 0
+  statusModifier: 
+  difficulty: 
+  note: 

@@ -12,27 +12,36 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6aa2a7afbc13e824d869983204d074bc, type: 3}
   m_Name: EVT-I005
   m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.EventData
+  dayMin: 1
+  dayMax: 99
+  endingId: 
+  situation: 
+  choices: []
+  objectId: 
+  description: 
   eventId: EVT-I005
-  eventName: "\uC624\uC5FC\uB41C \uC2DD\uC218\uC6D0"
+  eventName: EVT-I005
   eventType: "\uC544\uC774\uD15C"
   eventCategory: 
-  probability: 10
+  probability: 0
   hasBranch: 
   region: 
   regionEntryCondition: 
   regionSpecialEffect: 
-  relatedItemId: "\uC815\uC218 \uD544\uD130 / \uC815\uC218\uC81C"
-  itemOwnedResult: "\uC548\uC804\uD55C \uC2DD\uC218 \uD655\uBCF4"
+  relatedItemId: 
+  itemOwnedResult: 
   itemNotOwnedResult: 
-  branchAResult: "\uC9D1\uB2E8 \uC2DD\uC911\uB3C5 \uC704\uD5D8, \uCCB4\uB825 \uAC10\uC18C"
-  branchBResult: "\uC815\uC218 \uCC98\uB9AC \uD6C4 \uAE68\uB057\uD55C \uBB3C \uD655\uBCF4.
-    \uC2DD\uB7C9/\uBB3C +15."
+  branchAResult: 
+  branchBResult: 
   foodWaterChange: 0
   weaponAmmoChange: 0
   moraleChange: 0
   medicalSupplyChange: 0
+  failFoodWater: 0
+  failMorale: 0
+  failMedical: 0
   statusEffect: -10
   statusDuration: 0
-  statusModifier: 3
-  difficulty: "\uC2DD\uC911\uB3C5: \uC2DD\uB7C9 \uC18C\uBAA8 +50%"
-  note: B
+  statusModifier: 
+  difficulty: 
+  note: 

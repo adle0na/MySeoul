@@ -1,0 +1,67 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6aa2a7afbc13e824d869983204d074bc, type: 3}
+  m_Name: A2
+  m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.EventData
+  dayMin: 3
+  dayMax: 99
+  endingId: A
+  situation: "\uBB34\uC804 \uB108\uBA38\uC5D0\uC11C \uC704\uCE58\uB97C \uBB3B\uB294\uB2E4."
+  choices:
+  - label: "\uD559\uAD50 \uC88C\uD45C\uB97C \uB610\uBC15\uB610\uBC15 \uBD88\uB7EC\uC900\uB2E4"
+    requiredItem: 
+    resultText: "\uAD6C\uC870\uB300\uAC00 \uC704\uCE58\uB97C \uD655\uC778\uD588\uB2E4."
+    hunger: 0
+    thirst: 0
+    pain: 0
+    fatigue: 0
+    bagUpgrade: 0
+    correct: 1
+    rewardItem: 
+    loseRandomItem: 0
+  - label: "\uB2F9\uD669\uD574 \uB9D0\uC744 \uB354\uB4EC\uB294\uB2E4"
+    requiredItem: 
+    resultText: "\uC2E0\uD638\uAC00 \uB04A\uACBC\uB2E4."
+    hunger: 0
+    thirst: 0
+    pain: 0
+    fatigue: 5
+    bagUpgrade: 0
+    correct: 0
+    rewardItem: 
+    loseRandomItem: 0
+  eventId: A2
+  eventName: "\uC751\uB2F5\uC774 \uC628\uB2E4"
+  eventType: 
+  eventCategory: 
+  probability: 100
+  hasBranch: 
+  region: 
+  regionEntryCondition: 
+  regionSpecialEffect: 
+  relatedItemId: 
+  itemOwnedResult: 
+  itemNotOwnedResult: 
+  branchAResult: 
+  branchBResult: 
+  foodWaterChange: 0
+  weaponAmmoChange: 0
+  moraleChange: 0
+  medicalSupplyChange: 0
+  failFoodWater: 0
+  failMorale: 0
+  failMedical: 0
+  statusEffect: 
+  statusDuration: 0
+  statusModifier: 
+  difficulty: 
+  note: 
