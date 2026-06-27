@@ -88,6 +88,14 @@ namespace SeoulLast
         Component charSpine;            // Spine SkeletonGraphic (리플렉션 제어)
         System.Reflection.FieldInfo spineTimeScale;
 
+        // ---- 이벤트 연출 FX (머리 위 말풍선/느낌표, 우측 연기) ----
+        [Header("이벤트 연출 스프라이트(프레임)")]
+        [SerializeField] Sprite[] speechFrames;   // 말풍선 (bahbah_1/2/3, speech)
+        [SerializeField] Sprite[] exclamFrames;   // 느낌표 (exclamation_1/2) — 아이템 이벤트
+        [SerializeField] Sprite[] pungFrames;     // 연기 (pung_1/2) — 아이템 등장
+        Image overheadFx;               // 캐릭터 머리 위 (런타임 생성)
+        Image pungFx;                   // 우측 아이템 연기 (런타임 생성)
+
         void Awake()
         {
             if (uiFont != null) UIFactory.Override = uiFont;   // 런타임 텍스트 한글 폰트
@@ -472,33 +480,102 @@ namespace SeoulLast
 
         void StartApproach()
         {
-            walking = true;
+            EnsureFxObjects();
+            walking = true;     // 좌측에서 제자리 걸음(Spine walk + 배경 스크롤)
             if (eventCard != null) eventCard.gameObject.SetActive(false);
-            if (itemImg != null)
-            {
-                // 등장 물건 이미지 반영 (없으면 기본 스프라이트 유지)
-                var d = curDialog != null ? FindItemData(curDialog.spawnItemId) : null;
-                if (d != null && d.icon != null) { itemImg.sprite = d.icon; itemImg.color = Color.white; }
-                itemImg.gameObject.SetActive(true);
-                itemImg.rectTransform.anchoredPosition = new Vector2(W - 240, -840);
-            }
+            if (overheadFx != null) overheadFx.gameObject.SetActive(false);
+            if (pungFx != null) pungFx.gameObject.SetActive(false);
+            if (itemImg != null) { itemImg.gameObject.SetActive(false); itemImg.rectTransform.localScale = Vector3.one; }
             StopAllCoroutines();
-            StartCoroutine(ApproachCo());
+            StartCoroutine(SequenceCo());
         }
 
-        IEnumerator ApproachCo()
+        // 머리 위 말풍선/느낌표, (아이템 이벤트면) 우측 연기와 함께 아이템 등장 → 카드/텍스트
+        IEnumerator SequenceCo()
         {
-            float t = 0, dur = 0.8f, startX = W - 240, endX = 470;
-            var rt = itemImg != null ? itemImg.rectTransform : null;
-            while (t < dur)
+            bool hasItem = curDialog != null && !string.IsNullOrEmpty(curDialog.spawnItemId);
+
+            // 1) 제자리 걸음 후 멈춤
+            yield return new WaitForSeconds(0.9f);
+            walking = false;
+
+            // 2) 머리 위 연출 — 아이템 이벤트면 느낌표, 아니면 말풍선
+            yield return StartCoroutine(PlayOverhead(hasItem ? exclamFrames : speechFrames, hasItem ? 0.6f : 0.7f));
+
+            // 3) 아이템이 있으면 우측에서 연기(pung)와 함께 뿅 등장
+            if (hasItem) yield return StartCoroutine(PopItem());
+
+            // 4) 카드 표시 + 텍스트 타이핑
+            if (overheadFx != null) overheadFx.gameObject.SetActive(false);
+            if (eventCard != null) eventCard.gameObject.SetActive(true);
+            StartReveal();
+        }
+
+        // 머리 위 스프라이트 프레임 애니메이션을 duration 동안 루프 재생(끝나도 표시 유지)
+        IEnumerator PlayOverhead(Sprite[] frames, float duration)
+        {
+            if (overheadFx == null || frames == null || frames.Length == 0) { yield return new WaitForSeconds(duration); yield break; }
+            overheadFx.gameObject.SetActive(true);
+            overheadFx.sprite = frames[0];
+            float t = 0, acc = 0; const float ft = 0.12f; int i = 0;
+            while (t < duration)
             {
-                t += Time.deltaTime;
-                if (rt != null) rt.anchoredPosition = new Vector2(Mathf.Lerp(startX, endX, t / dur), -840);
+                t += Time.deltaTime; acc += Time.deltaTime;
+                if (acc >= ft) { acc = 0; i = (i + 1) % frames.Length; overheadFx.sprite = frames[i]; }
                 yield return null;
             }
-            walking = false;
-            if (eventCard != null) eventCard.gameObject.SetActive(true);
-            StartReveal();   // 카드 표시 후 텍스트 디지털 타이핑
+        }
+
+        // 우측에서 아이템이 연기(pung)와 함께 뿅 등장(스케일 팝)
+        IEnumerator PopItem()
+        {
+            if (itemImg != null)
+            {
+                var d = FindItemData(curDialog.spawnItemId);
+                if (d != null && d.icon != null) { itemImg.sprite = d.icon; itemImg.color = Color.white; }
+                itemImg.rectTransform.anchoredPosition = new Vector2(W - 240, -840);
+                itemImg.rectTransform.localScale = Vector3.zero;
+                itemImg.gameObject.SetActive(true);
+            }
+            bool hasPung = pungFx != null && pungFrames != null && pungFrames.Length > 0;
+            if (hasPung) { pungFx.sprite = pungFrames[0]; pungFx.gameObject.SetActive(true); }
+            var irt = itemImg != null ? itemImg.rectTransform : null;
+            float t = 0, dur = 0.45f, acc = 0; const float ft = 0.1f; int pi = 0;
+            while (t < dur)
+            {
+                t += Time.deltaTime; acc += Time.deltaTime;
+                if (hasPung && acc >= ft) { acc = 0; pi = Mathf.Min(pi + 1, pungFrames.Length - 1); pungFx.sprite = pungFrames[pi]; }
+                if (irt != null) irt.localScale = Vector3.one * Pop(t / dur);
+                yield return null;
+            }
+            if (irt != null) irt.localScale = Vector3.one;
+            if (pungFx != null) pungFx.gameObject.SetActive(false);
+        }
+
+        // 0→1 살짝 튀는 back-out 이징(뿅)
+        static float Pop(float p)
+        {
+            p = Mathf.Clamp01(p); const float s = 1.7f; float q = p - 1f;
+            return 1f + (s + 1f) * q * q * q + s * q * q;
+        }
+
+        // 머리 위/우측 FX 이미지를 런타임에 1회 생성(씬/코드 빌드 공통)
+        void EnsureFxObjects()
+        {
+            if (eventPanel == null) return;
+            var ep = eventPanel.transform;
+            if (overheadFx == null)
+            {
+                overheadFx = UIFactory.Img(ep, "OverheadFx", Color.white);
+                UIFactory.SetRect(overheadFx.rectTransform, 190, 540, 220, 220);
+                overheadFx.raycastTarget = false; overheadFx.gameObject.SetActive(false);
+            }
+            if (pungFx == null)
+            {
+                pungFx = UIFactory.Img(ep, "PungFx", Color.white);
+                UIFactory.SetRect(pungFx.rectTransform, 805, 805, 240, 240);
+                pungFx.raycastTarget = false; pungFx.gameObject.SetActive(false);
+            }
         }
 
         // ---------- 텍스트 타이핑 연출 (터치 시 스킵) ----------
@@ -533,7 +610,27 @@ namespace SeoulLast
             revealing = false;
             if (revealRoutine != null) { StopCoroutine(revealRoutine); revealRoutine = null; }
             if (eventBody != null) eventBody.maxVisibleCharacters = 99999;
-            if (choiceArea != null) choiceArea.gameObject.SetActive(true);   // 선택지는 타이핑 끝나고 노출
+            if (choiceArea != null)
+            {
+                choiceArea.gameObject.SetActive(true);   // 선택지는 타이핑 끝나고 노출
+                StartCoroutine(PopChoices());            // 버튼 하나씩 뿅 생성
+            }
+        }
+
+        // 선택지 버튼을 하나씩 스케일 팝으로 등장
+        IEnumerator PopChoices()
+        {
+            if (choiceArea == null) yield break;
+            int n = choiceArea.childCount;
+            var rts = new RectTransform[n];
+            for (int i = 0; i < n; i++) { rts[i] = choiceArea.GetChild(i) as RectTransform; if (rts[i] != null) rts[i].localScale = Vector3.zero; }
+            for (int i = 0; i < n; i++)
+            {
+                var rt = rts[i]; if (rt == null) continue;
+                float t = 0; const float dur = 0.16f;
+                while (t < dur) { t += Time.deltaTime; rt.localScale = Vector3.one * Pop(t / dur); yield return null; }
+                rt.localScale = Vector3.one;
+            }
         }
 
         IEnumerator FlyItemToBag(System.Action done)
@@ -732,22 +829,57 @@ namespace SeoulLast
         void ShowMap()
         {
             for (int i = mapArea.childCount - 1; i >= 0; i--) Destroy(mapArea.GetChild(i).gameObject);
-            float y = 0; int shown = 0;
-            // Location 시트: 잠금 해제된 장소만 노출
+
+            // 잠금 해제된 장소를 층(floor)별로 묶는다. 높은 층이 위로 오도록 내림차순.
+            var byFloor = new SortedDictionary<int, List<LocationData>>(
+                Comparer<int>.Create((a, b) => b.CompareTo(a)));
             if (locations != null)
                 foreach (var l in locations)
                 {
                     if (l == null || l.isLock) continue;
-                    var lid = l.locationId; var lname = l.locationName;
-                    TextMeshProUGUI tl; var b = UIFactory.Button(mapArea, "loc", lname, new Color(0.32f, 0.45f, 0.6f), () => StartStage(lid, lname), out tl);
-                    UIFactory.SetRect(b.GetComponent<RectTransform>(), 0, y, 920, 120); y += 134; shown++;
+                    if (l.floor <= 0) continue;   // 층 미지정(기타)은 지도에서 제외
+                    if (!byFloor.TryGetValue(l.floor, out var list)) { list = new List<LocationData>(); byFloor[l.floor] = list; }
+                    list.Add(l);
                 }
+
+            const float areaW = W - 160f;     // mapArea 너비 (SetRect와 일치)
+            const float btnW = 290f, btnH = 110f, gapX = 15f, gapY = 14f, labelH = 56f, floorGap = 30f;
+            int perRow = Mathf.Max(1, Mathf.FloorToInt((areaW + gapX) / (btnW + gapX)));   // 한 줄 버튼 수(=3)
+            float y = 0f; int shown = 0;
+
+            foreach (var kv in byFloor)
+            {
+                // 층 라벨 ("3층" 등). 위층부터 한 줄씩.
+                var lab = UIFactory.Label(mapArea, "floorLabel", FloorName(kv.Key), 34, TextAlignmentOptions.Left, new Color(0.85f, 0.88f, 0.95f));
+                UIFactory.SetRect(lab.rectTransform, 0, y, areaW, labelH);
+                y += labelH;
+
+                var list = kv.Value;
+                for (int i = 0; i < list.Count; i++)
+                {
+                    int col = i % perRow, rowIdx = i / perRow;
+                    var lid = list[i].locationId; var lname = list[i].locationName;
+                    TextMeshProUGUI tl; var b = UIFactory.Button(mapArea, "loc", lname, new Color(0.32f, 0.45f, 0.6f), () => StartStage(lid, lname), out tl);
+                    UIFactory.SetRect(b.GetComponent<RectTransform>(), col * (btnW + gapX), y + rowIdx * (btnH + gapY), btnW, btnH);
+                    shown++;
+                }
+                int rows = Mathf.CeilToInt(list.Count / (float)perRow);
+                y += rows * btnH + (rows > 1 ? (rows - 1) * gapY : 0) + floorGap;
+            }
+
             if (shown == 0)
             {
                 TextMeshProUGUI tl; var b = UIFactory.Button(mapArea, "loc", "어디든 (일반)", new Color(0.32f, 0.45f, 0.6f), () => StartStage("", "어디든"), out tl);
                 UIFactory.SetRect(b.GetComponent<RectTransform>(), 0, 0, 920, 120);
             }
             Only(mapPanel);
+        }
+
+        // 층 번호 → 표시 이름. 특수층은 여기서 매핑(필요 시 확장).
+        string FloorName(int f)
+        {
+            if (f <= 0) return "기타";
+            return f + "층";
         }
 
         EventData FindEvent(string id)

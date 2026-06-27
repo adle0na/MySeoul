@@ -380,6 +380,7 @@ namespace SeoulLast.EditorTools
 
                 loc.locationId = id;
                 loc.locationName = Get(row, col, "LocationName");
+                loc.floor = ParseInt(Get(row, col, "LocationFloor"));
                 loc.isLock = ParseBool(Get(row, col, "LocationIsLock"));
                 loc.visitCount = ParseInt(Get(row, col, "LocationVisitCount"));
                 loc.description = Get(row, col, "LocationDescription");
