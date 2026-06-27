@@ -85,8 +85,9 @@ namespace SeoulLast
         bool walking;                   // 걷는 중(배경 스크롤 + Spine 재생)
         float itemMeetX;                // 아이템이 멈출 x(캐릭터 위치)
         const float SCROLL_SPEED = 0.06f;
-        Component charSpine;            // Spine SkeletonGraphic (리플렉션 제어)
+        Component charSpine;            // Spine 걷기 SkeletonGraphic (리플렉션 제어)
         System.Reflection.FieldInfo spineTimeScale;
+        GameObject charSpineIdleGO;     // Spine 정면 idle SkeletonGraphic (O001-01~08용, 토글)
 
         // ---- 이벤트 연출 FX (머리 위 말풍선/느낌표, 우측 연기) ----
         [Header("이벤트 연출 스프라이트(프레임)")]
@@ -161,6 +162,9 @@ namespace SeoulLast
                     if (charSpine != null) spineTimeScale = sgType.GetField("timeScale");
                 }
             }
+            var ciT = c.Find("EventPanel/CharSpineIdle");
+            charSpineIdleGO = ciT != null ? ciT.gameObject : null;
+            if (charSpineIdleGO != null) charSpineIdleGO.SetActive(false);
             mapArea = c.Find("MapPanel/MapArea").GetComponent<RectTransform>();
             gridRect = c.Find("BagPanel/Grid").GetComponent<RectTransform>();
             slotsRect = c.Find("BagPanel/Slots").GetComponent<RectTransform>();
@@ -481,23 +485,41 @@ namespace SeoulLast
         void StartApproach()
         {
             EnsureFxObjects();
-            walking = true;     // 좌측에서 제자리 걸음(Spine walk + 배경 스크롤)
+            bool stat = IsStaticScene();   // O001-01~08: 정면 idle + 배경 정지
+            SetCharMode(stat);
+            walking = !stat;               // static이면 걷지 않음(배경도 정지)
             if (eventCard != null) eventCard.gameObject.SetActive(false);
             if (overheadFx != null) overheadFx.gameObject.SetActive(false);
             if (pungFx != null) pungFx.gameObject.SetActive(false);
             if (itemImg != null) { itemImg.gameObject.SetActive(false); itemImg.rectTransform.localScale = Vector3.one; }
             StopAllCoroutines();
-            StartCoroutine(SequenceCo());
+            StartCoroutine(SequenceCo(stat));
+        }
+
+        // 정면 idle + 배경 정지로 둘 이벤트인가 (온보딩 O001-01 ~ O001-08)
+        bool IsStaticScene()
+        {
+            string id = curDialog != null ? curDialog.dialogId : null;
+            if (string.IsNullOrEmpty(id) || !id.StartsWith("O001-")) return false;
+            int n;
+            return int.TryParse(id.Substring(5), out n) && n >= 1 && n <= 8;
+        }
+
+        // idle(정면) 스켈레톤 ↔ walk 스켈레톤 전환
+        void SetCharMode(bool idle)
+        {
+            if (charSpine != null) charSpine.gameObject.SetActive(!idle);
+            if (charSpineIdleGO != null) charSpineIdleGO.SetActive(idle);
         }
 
         // 머리 위 말풍선/느낌표, (아이템 이벤트면) 우측 연기와 함께 아이템 등장 → 카드/텍스트
-        IEnumerator SequenceCo()
+        IEnumerator SequenceCo(bool stat)
         {
             bool hasItem = curDialog != null && !string.IsNullOrEmpty(curDialog.spawnItemId);
 
-            // 1) 제자리 걸음 후 멈춤
-            yield return new WaitForSeconds(0.9f);
-            walking = false;
+            // 1) 걷기 후 멈춤 (static이면 걷지 않고 짧은 텀만)
+            if (!stat) { yield return new WaitForSeconds(0.9f); walking = false; }
+            else yield return new WaitForSeconds(0.3f);
 
             // 2) 머리 위 연출 — 아이템이면 느낌표, 아니면 말풍선.
             //    멈춘 직후 떠서 다음 걷기 시작(StartApproach)까지 계속 표시·순환.
