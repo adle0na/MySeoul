@@ -61,6 +61,8 @@ namespace SeoulLast
             LayoutStorage();
         }
 
+        public void SelectItem(InvItemView item) { } // 구 프로토타입은 선택 사용 안 함
+
         void Start()
         {
             bag.Width = bagWidth;

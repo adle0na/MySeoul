@@ -19,10 +19,11 @@ namespace SeoulLast
         void MoveToStorage(InvItemView item);
         void ReturnToStorage(InvItemView item);
         void Discard(InvItemView item);
+        void SelectItem(InvItemView item);
     }
 
-    // 인벤토리 아이템 뷰. 그리드 ↔ 트레이 드래그, 버리기 존에 놓으면 폐기.
-    public class InvItemView : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
+    // 인벤토리 아이템 뷰. 그리드 ↔ 트레이 드래그, 버리기 존에 놓으면 폐기, 클릭하면 선택.
+    public class InvItemView : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler, IPointerClickHandler
     {
         public PlacedItem Model;
         public bool InBag;
@@ -126,6 +127,12 @@ namespace SeoulLast
             // 4) 그 외 → 원위치
             if (InBag) AttachToBag(Model.Origin);
             else host.ReturnToStorage(this);
+        }
+
+        // 클릭(드래그 아님)하면 선택. 드래그 시엔 EventSystem이 click을 발생시키지 않음.
+        public void OnPointerClick(PointerEventData e)
+        {
+            host.SelectItem(this);
         }
 
         public void AttachToBag(Vector2Int origin)

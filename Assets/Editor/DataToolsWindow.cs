@@ -23,6 +23,11 @@ namespace SeoulLast.EditorTools
         const string KeyEventUrl = "NPYG_EventCsvUrl";
         const string KeyDialogUrl = "NPYG_DialogCsvUrl";
 
+        // static 임포트(윈도우 인스턴스 없이 호출 가능)용 기본 폴더
+        const string CsvFolder = "Assets/Data/CSV";
+        const string EventFolder = "Assets/Data/Events";
+        const string DialogFolder = "Assets/Data/Dialogs";
+
         [MenuItem("NoPainYesGame/Data Tools")]
         static void Open() => GetWindow<DataToolsWindow>("Data Tools");
 
@@ -218,12 +223,12 @@ namespace SeoulLast.EditorTools
             EditorUtility.DisplayDialog("임포트 완료", $"이벤트 생성 {res[0]}개 / 갱신 {res[1]}개\n폴더: {eventAssetFolder}", "확인");
         }
 
-        // 다이얼로그 없는 핵심 로직 (테스트/자동화용). 반환: {생성, 갱신}, 헤더 못 찾으면 null.
-        public int[] RunImportEvents()
+        // 다이얼로그 없는 핵심 로직 (테스트/자동화용, static — 윈도우 불필요). 반환: {생성, 갱신}, 헤더 못 찾으면 null.
+        public static int[] RunImportEvents()
         {
-            string csvPath = Path.Combine(csvFolder, "Event.csv");
+            string csvPath = Path.Combine(CsvFolder, "Event.csv");
             if (!File.Exists(csvPath)) return null;
-            Directory.CreateDirectory(eventAssetFolder);
+            Directory.CreateDirectory(EventFolder);
 
             var rows = CsvParser.Parse(File.ReadAllText(csvPath));
             int headerRow = FindHeaderRow(rows, "EventId");
@@ -237,7 +242,7 @@ namespace SeoulLast.EditorTools
                 string id = Get(row, col, "EventId").Trim();
                 if (!id.StartsWith("EVT")) continue; // 데이터 행만 (타입/한글 헤더 스킵)
 
-                string assetPath = $"{eventAssetFolder}/{id}.asset";
+                string assetPath = $"{EventFolder}/{id}.asset";
                 var ev = AssetDatabase.LoadAssetAtPath<EventData>(assetPath);
                 bool isNew = ev == null;
                 if (isNew) ev = ScriptableObject.CreateInstance<EventData>();
@@ -276,11 +281,11 @@ namespace SeoulLast.EditorTools
             EditorUtility.DisplayDialog("임포트 완료", $"대화 생성 {res[0]}개 / 갱신 {res[1]}개\n폴더: {dialogAssetFolder}", "확인");
         }
 
-        public int[] RunImportDialogs()
+        public static int[] RunImportDialogs()
         {
-            string csvPath = Path.Combine(csvFolder, "EventDialog.csv");
+            string csvPath = Path.Combine(CsvFolder, "EventDialog.csv");
             if (!File.Exists(csvPath)) return null;
-            Directory.CreateDirectory(dialogAssetFolder);
+            Directory.CreateDirectory(DialogFolder);
 
             var rows = CsvParser.Parse(File.ReadAllText(csvPath));
             int headerRow = FindHeaderRow(rows, "DialogId");
@@ -294,7 +299,7 @@ namespace SeoulLast.EditorTools
                 string id = Get(row, col, "DialogId").Trim();
                 if (string.IsNullOrEmpty(id) || id == "string" || id.StartsWith("대화")) continue;
 
-                string assetPath = $"{dialogAssetFolder}/{id}.asset";
+                string assetPath = $"{DialogFolder}/{id}.asset";
                 var d = AssetDatabase.LoadAssetAtPath<DialogData>(assetPath);
                 bool isNew = d == null;
                 if (isNew) d = ScriptableObject.CreateInstance<DialogData>();

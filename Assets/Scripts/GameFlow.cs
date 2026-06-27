@@ -58,7 +58,8 @@ namespace SeoulLast
         GameObject startPanel, cutscenePanel, bagPanel, eventPanel, endingPanel, gameOverPanel, restPanel, mapPanel;
         Text bagBody, eventTitle, eventBody, endingBody, goBody, restBody, bagBtnLabel;
         RectTransform choiceArea, mapArea;
-        RectTransform gridRect, slotsRect, trayRect, trashZone, dragLayer, useListRect;
+        RectTransform gridRect, slotsRect, trayRect, trashZone, dragLayer;
+        Button useBtn; Text useBtnLabel; PlacedItem selectedItem;
         System.Action bagOnDone;        // 가방 정비 완료 시 동작(맥락별)
 
         void Awake()
@@ -104,11 +105,13 @@ namespace SeoulLast
             trayRect = c.Find("BagPanel/Tray").GetComponent<RectTransform>();
             trashZone = c.Find("BagPanel/Trash").GetComponent<RectTransform>();
             dragLayer = c.Find("BagPanel/DragLayer").GetComponent<RectTransform>();
-            useListRect = c.Find("BagPanel/UseList").GetComponent<RectTransform>();
+            useBtn = c.Find("BagPanel/UseBtn").GetComponent<Button>();
+            useBtnLabel = c.Find("BagPanel/UseBtn/Label").GetComponent<Text>();
 
             Wire(c, "StartPanel/StartBtn", OnStartBtn);
             Wire(c, "CutscenePanel/CutNext", BeginOnboarding);
             Wire(c, "BagPanel/DayStart", BagDone);
+            Wire(c, "BagPanel/UseBtn", OnUseBtn);
             Wire(c, "RestPanel/RestBag", () => ShowBag(ShowRest, "휴식으로 →"));
             Wire(c, "RestPanel/RestMap", ShowMap);
             Wire(c, "EndingPanel/EndingPanelBtn", Restart);
@@ -155,6 +158,7 @@ namespace SeoulLast
         void ShowBag(System.Action onDone, string label)
         {
             bagOnDone = onDone;
+            selectedItem = null;
             if (bagBtnLabel != null) bagBtnLabel.text = label;
             BuildBagScreen();
             Only(bagPanel);
@@ -183,7 +187,7 @@ namespace SeoulLast
             }
             LayoutTrayOnly();
             RecolorSlots();
-            RefreshUseList();
+            UpdateUseButton();
             UpdateBagInfo();
         }
 
@@ -228,23 +232,33 @@ namespace SeoulLast
             }
         }
 
-        // 회복 아이템 '사용' 버튼 목록 (그리드+트레이의 회복류)
-        void RefreshUseList()
+        // 아이템 클릭 → 선택 (InvItemView가 호출)
+        public void SelectItem(InvItemView item)
         {
-            for (int i = useListRect.childCount - 1; i >= 0; i--) Destroy(useListRect.GetChild(i).gameObject);
-            var rec = new List<PlacedItem>();
-            foreach (var p in bag.Placed) if (p.Def.IsRecovery) rec.Add(p);
-            foreach (var p in tray) if (p.Def.IsRecovery) rec.Add(p);
-            float y = 0;
-            foreach (var p in rec)
+            selectedItem = item != null ? item.Model : null;
+            UpdateUseButton();
+        }
+
+        // 단일 '사용' 버튼: 회복 아이템이 선택됐을 때만 활성화
+        void UpdateUseButton()
+        {
+            if (selectedItem != null && !bag.Placed.Contains(selectedItem) && !tray.Contains(selectedItem))
+                selectedItem = null;
+            bool usable = selectedItem != null && selectedItem.Def.IsRecovery && selectedItem.Uses > 0;
+            if (useBtn != null) useBtn.interactable = usable;
+            if (useBtnLabel != null)
             {
-                var pi = p;
-                string lbl = $"{p.Def.Name} 사용 ({StatNormal[p.Def.RecoverStat]} -{p.Def.RecoverAmt})";
-                Text tl; var b = UIFactory.Button(useListRect, "use", lbl, new Color(0.3f, 0.6f, 0.45f), () => UseRecovery(pi), out tl);
-                tl.fontSize = 24;
-                UIFactory.SetRect(b.GetComponent<RectTransform>(), 0, y, 540, 70);
-                y += 78;
+                if (usable) { var d = selectedItem.Def; useBtnLabel.text = $"{d.Name} 사용  ({StatNormal[d.RecoverStat]} -{d.RecoverAmt})"; }
+                else if (selectedItem != null) useBtnLabel.text = $"{selectedItem.Def.Name} — 사용할 수 없음";
+                else useBtnLabel.text = "사용할 회복 아이템을 선택";
             }
+        }
+
+        void OnUseBtn()
+        {
+            if (selectedItem == null || !selectedItem.Def.IsRecovery) return;
+            UseRecovery(selectedItem);   // 내부에서 BuildBagScreen 호출
+            selectedItem = null;
         }
 
         void UseRecovery(PlacedItem p)
@@ -279,7 +293,7 @@ namespace SeoulLast
             tray.Remove(item.Model);
             item.InBag = true;
             item.AttachToBag(origin);
-            LayoutTrayOnly(); RefreshUseList(); UpdateBagInfo();
+            LayoutTrayOnly(); UpdateUseButton(); UpdateBagInfo();
         }
 
         public void MoveToStorage(InvItemView item)
@@ -288,7 +302,7 @@ namespace SeoulLast
             item.InBag = false;
             if (!tray.Contains(item.Model)) tray.Add(item.Model);
             item.transform.SetParent(trayRect, false);
-            LayoutTrayOnly(); RefreshUseList(); UpdateBagInfo();
+            LayoutTrayOnly(); UpdateUseButton(); UpdateBagInfo();
         }
 
         public void ReturnToStorage(InvItemView item) => MoveToStorage(item);
@@ -298,7 +312,7 @@ namespace SeoulLast
             if (item.InBag) bag.RemoveFromBag(item.Model);
             tray.Remove(item.Model);
             Destroy(item.gameObject);
-            LayoutTrayOnly(); RefreshUseList(); UpdateBagInfo();
+            LayoutTrayOnly(); UpdateUseButton(); UpdateBagInfo();
         }
 
         // 다음 이벤트 재생 (forcedNextId 또는 "random" 해석). 정해진 게 없으면 휴식.
@@ -315,6 +329,8 @@ namespace SeoulLast
         // 대화 노드 시작 ("Done"/없음/빈 노드면 이벤트 종료)
         void StartDialog(string dialogId)
         {
+            if (dialogId == "Win") { ShowWin(); return; }
+            if (dialogId == "Dead") { ShowGameOver(0); return; }
             if (string.IsNullOrEmpty(dialogId) || dialogId == "Done") { EndEvent(); return; }
             curDialog = FindDialog(dialogId);
             if (curDialog == null || IsEmptyDialog(curDialog)) { EndEvent(); return; }
@@ -365,6 +381,7 @@ namespace SeoulLast
             foreach (var ev in events)
             {
                 if (ev == null || ev.eventType == "온보딩") continue;
+                if (string.IsNullOrEmpty(ev.startDialogId)) continue;   // 대화 없는(빈) 이벤트는 제외
                 bool general = ev.eventType == "일반";
                 bool regionMatch = ev.eventType == "특정지역" && ev.region == stageRegion;
                 if (general || regionMatch) pool.Add(ev);
@@ -392,6 +409,13 @@ namespace SeoulLast
                 StartDialog(next);
         }
 
+        // requiredItem(이름 또는 ID)을 표시용 아이템 이름으로
+        string DisplayReq(string key)
+        {
+            var d = FindItemData(key);
+            return d != null && !string.IsNullOrEmpty(d.itemName) ? d.itemName : key;
+        }
+
         DialogData FindDialog(string id)
         {
             if (dialogs == null || string.IsNullOrEmpty(id)) return null;
@@ -415,6 +439,13 @@ namespace SeoulLast
             var def = new ItemDef(d.itemId, string.IsNullOrEmpty(d.itemName) ? d.itemId : d.itemName,
                 new Color(0.62f, 0.6f, 0.5f), cells);
             def.MaxUses = d.durability > 0 ? d.durability : 1;
+
+            // 회복 매핑 (이름/타입 기반) — 지급된 자원/회복 아이템을 가방에서 사용 가능
+            string n = d.itemName ?? "";
+            if (n.Contains("빵") || n.Contains("통조림") || n.Contains("라면")) { def.RecoverStat = 0; def.RecoverAmt = 35; def.MaxUses = 1; }
+            else if (n.Contains("음료") || n.Contains("생수") || n.Contains("물")) { def.RecoverStat = 1; def.RecoverAmt = 35; def.MaxUses = 1; }
+            else if (d.itemType == "회복" || n.Contains("구급") || n.Contains("붕대")) { def.RecoverStat = 2; def.RecoverAmt = 45; def.MaxUses = 1; }
+            else if (n.Contains("각성")) { def.RecoverStat = 3; def.RecoverAmt = 40; def.MaxUses = 1; }
             return def;
         }
 
@@ -568,13 +599,21 @@ namespace SeoulLast
             Only(gameOverPanel);
         }
 
+        void ShowWin()
+        {
+            endingBody.text = "<b>탈출 성공!</b>\n\n헬기가 옥상의 너를 발견했다.\n마침내 학교를 벗어났다.\n\n(데모 엔딩)";
+            Only(endingPanel);
+        }
+
         void Restart() { ResetRun(); ShowStart(); } // 시작화면부터(컷씬은 이미 봤으면 스킵)
 
         // ---------- 인벤토리 보조 (이벤트는 한글 이름으로 아이템 참조) ----------
-        bool HasItem(string name)
+        // requiredItem은 아이템 이름(데모) 또는 아이템 ID(시트, 예 TOO002) 둘 다 허용
+        static bool Match(PlacedItem p, string key) => p.Def.Name == key || p.Def.Id == key;
+        bool HasItem(string key)
         {
-            foreach (var p in bag.Placed) if (p.Def.Name == name && p.Uses > 0) return true;
-            foreach (var p in tray) if (p.Def.Name == name && p.Uses > 0) return true;
+            foreach (var p in bag.Placed) if (Match(p, key) && p.Uses > 0) return true;
+            foreach (var p in tray) if (Match(p, key) && p.Uses > 0) return true;
             return false;
         }
         bool AddItem(string name)
@@ -595,12 +634,12 @@ namespace SeoulLast
                 }
             return false;
         }
-        void ConsumeUse(string name)
+        void ConsumeUse(string key)
         {
             foreach (var p in bag.Placed)
-                if (p.Def.Name == name && p.Uses > 0) { p.Uses--; if (p.Uses <= 0) bag.RemoveFromBag(p); return; }
+                if (Match(p, key) && p.Uses > 0) { p.Uses--; if (p.Uses <= 0) bag.RemoveFromBag(p); return; }
             foreach (var p in tray)
-                if (p.Def.Name == name && p.Uses > 0) { p.Uses--; if (p.Uses <= 0) tray.Remove(p); return; }
+                if (Match(p, key) && p.Uses > 0) { p.Uses--; if (p.Uses <= 0) tray.Remove(p); return; }
         }
 
         // ---------- 상태/텍스트 ----------
@@ -626,11 +665,11 @@ namespace SeoulLast
         string L(int i, int d) => d == 0 ? "" : $"\n{StatNormal[i]} {(d > 0 ? "악화" : "회복")} ({(d > 0 ? "+" : "") + d})";
 
         // ---------- 선택지 ----------
-        void ClearChoices() { for (int i = choiceArea.childCount - 1; i >= 0; i--) Destroy(choiceArea.GetChild(i).gameObject); }
+        void ClearChoices() { choiceCount = 0; for (int i = choiceArea.childCount - 1; i >= 0; i--) Destroy(choiceArea.GetChild(i).gameObject); }
 
         void AddChoice(EventChoice c, int index, bool enabled, bool gatedMissing)
         {
-            string lbl = gatedMissing ? $"{c.label}   (필요: {c.requiredItem})" : c.label;
+            string lbl = gatedMissing ? $"{c.label}   (필요: {DisplayReq(c.requiredItem)})" : c.label;
             Color col = enabled ? new Color(0.28f, 0.50f, 0.70f) : new Color(0.32f, 0.32f, 0.34f);
             Text t; var b = UIFactory.Button(choiceArea, "choice" + index, lbl, col, null, out t);
             t.fontSize = 27;
@@ -772,10 +811,11 @@ namespace SeoulLast
             var tzl = UIFactory.Label(tz.transform, "l", "여기로 끌어\n버리기", 26, TextAnchor.MiddleCenter, new Color(0.95f, 0.7f, 0.7f));
             tzl.raycastTarget = false; UIFactory.Fill(tzl.rectTransform);
 
-            // 회복 아이템 사용 목록
-            var useGO = new GameObject("UseList", typeof(RectTransform));
-            useListRect = useGO.GetComponent<RectTransform>(); useListRect.SetParent(p.transform, false);
-            UIFactory.SetRect(useListRect, trayX, ty + 320, TRAY_W, 250);
+            // 회복 아이템 사용 버튼 (아이템 선택 시 활성화)
+            useBtn = UIFactory.Button(p.transform, "UseBtn", "사용할 회복 아이템을 선택", new Color(0.3f, 0.6f, 0.45f), OnUseBtn, out useBtnLabel);
+            useBtnLabel.fontSize = 30;
+            UIFactory.SetRect(useBtn.GetComponent<RectTransform>(), trayX, ty + 320, TRAY_W + 300, 110);
+            useBtn.interactable = false;
 
             var b = UIFactory.Button(p.transform, "DayStart", "계속 →", new Color(0.85f, 0.45f, 0.25f), BagDone, out bagBtnLabel);
             UIFactory.SetRect(b.GetComponent<RectTransform>(), (W - 460) / 2f, 1730, 460, 140);
