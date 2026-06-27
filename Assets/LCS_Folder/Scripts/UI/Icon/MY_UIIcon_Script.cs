@@ -19,11 +19,13 @@ public class MY_UIIcon_Script : MonoBehaviour
     [SerializeField] private float _blinkdelay = 0.5f;
     [SerializeField] private float _blinkWaiting = 1.5f;
 
+
+    private bool _isClick = false;
+
     #region ø¨√‚
     private void AnimCall_Func()
     {
-        //StartCoroutine(this.WiggleWiggle_Update_Co());
-        //StartCoroutine(this.Blink_Update_Co());
+
     }
 
     private IEnumerator WiggleWiggle_Update_Co()
@@ -66,4 +68,13 @@ public class MY_UIIcon_Script : MonoBehaviour
         yield return null;
     }
     #endregion
+
+    public void Click_Icon_Func()
+    {
+        this._isClick = !this._isClick;
+
+        Color a_color = this._isClick? new Color(0.5f, 0.5f, 0.5f, 1.0f) : new Color(1.0f, 1.0f, 1.0f, 1.0f);
+
+        this._iconGameObject.GetComponent<Image>().color = a_color;
+    }
 }
