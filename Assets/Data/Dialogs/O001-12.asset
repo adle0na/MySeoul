@@ -14,11 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.DialogData
   dialogId: O001-12
   spawnItemId: RES001
-  description: "\uBCF5\uB3C4\uB97C \uAC77\uB294 \uAE38\uC5D0 \uB204\uAD70\uAC00 \uBC84\uB9B0
-    \uBE75\uC744 \uBC1C\uACAC\uD588\uB2E4."
+  description: "\uC624, \uBCF5\uB3C4\uC5D0 \uBE75\uC774 \uB5A8\uC5B4\uC838 \uC788\uB2E4!
+    \uB204\uAC00 \uD758\uB9AC\uACE0 \uAC14\uB098? \uC774\uB7F0 \uAC8C \uBC14\uB85C
+    \uAD74\uB7EC\uB4E4\uC5B4\uC628 \uD589\uC6B4\uC774\uC9C0."
   choices:
-  - label: "\uBC30\uACE0\uD320\uB294\uB370 \uC798\uB410\uB2E4! \uC8FC\uBA38\uB2C8\uC5D0
-      \uCC59\uAE34\uB2E4."
+  - label: "\uB9C8\uCE68 \uBC30\uACE0\uD320\uB294\uB370! \uB0C9\uD07C \uC90D\uC90D"
     requiredItem: 
     resultText: 
     hunger: 0
@@ -32,7 +32,8 @@ MonoBehaviour:
     correct: 0
     rewardItem: 
     loseRandomItem: 0
-  - label: "\uB4DC\uB77C\uC774\uBC84\uB85C \uD479 \uCC14\uB7EC\uBCF4\uC790"
+  - label: "(\uB4DC\uB77C\uC774\uBC84\uB85C) \uD479\u2014 \uCC14\uB7EC\uBCF4\uACE0
+      \uC2F6\uB2E4"
     requiredItem: TOO002
     resultText: 
     hunger: 0

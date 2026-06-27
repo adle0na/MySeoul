@@ -15,10 +15,12 @@ MonoBehaviour:
   dialogId: S015-03
   spawnItemId: KEY003
   description: "\uCF58\uC194 \uC11C\uB78D\uC5D0\uC11C '\uCEF4\uD4E8\uD130\uC2E4'
-    \uC5F4\uC1E0\uB97C \uCC3E\uB294\uB2E4. \uADF8 \uC606, \uBE44\uC0C1 \uBC29\uC1A1
-    \uC2A4\uC704\uCE58\uAC00 \uC544\uC9C1 \uC0B4\uC544 \uC788\uB2E4."
+    \uC5F4\uC1E0\uB97C \uCC3E\uC558\uB2E4! \uADF8 \uC606\uC5D4\u2026 \uBE44\uC0C1
+    \uBC29\uC1A1 \uC2A4\uC704\uCE58\uAC00 \uC544\uC9C1 \uC0B4\uC544 \uC788\uB124.
+    \uC624, \uC774\uAC70 \uB204\uB974\uBA74 \uC5B4\uB5BB\uAC8C \uB420\uAE4C? (\uB204\uB974\uACE0
+    \uC2F6\uB2E4)"
   choices:
-  - label: "\uC2A4\uC704\uCE58\uB294 \uADF8\uB300\uB85C \uB454\uB2E4"
+  - label: "\uCC38\uB294\uB2E4, \uC2A4\uC704\uCE58\uB294 \uADF8\uB300\uB85C \uB454\uB2E4"
     requiredItem: 
     resultText: 
     hunger: 0
@@ -32,7 +34,7 @@ MonoBehaviour:
     correct: 0
     rewardItem: 
     loseRandomItem: 0
-  - label: "\uC2DC\uD5D8 \uC0BC\uC544 \uCF1C\uBCF8\uB2E4"
+  - label: "\uC5D0\uB77C \uBAA8\uB974\uACA0\uB2E4, \uCF1C\uBCF8\uB2E4"
     requiredItem: 
     resultText: 
     hunger: 0

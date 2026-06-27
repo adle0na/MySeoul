@@ -11,15 +11,23 @@ namespace SeoulLast
         static TMP_FontAsset _tmpFont;
         static Sprite _white;
 
+        // 한글 폰트 주입(빌드 대비). GameFlow가 Awake에서 설정.
+        public static TMP_FontAsset Override;
+
         public static TMP_FontAsset GetTMPFont()
         {
-            if (_tmpFont == null)
-                _tmpFont = UnityEngine.Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
+            if (_tmpFont != null) return _tmpFont;
+            if (Override != null) { _tmpFont = Override; return _tmpFont; }
+            // 1) 한글 폰트(Paperlogy) 우선 — 런타임은 Resources, 에디터는 에셋 경로
+            _tmpFont = UnityEngine.Resources.Load<TMP_FontAsset>("Paperlogy-7Bold SDF");
 #if UNITY_EDITOR
             if (_tmpFont == null)
                 _tmpFont = UnityEditor.AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(
                     "Assets/Fonts/Paperlogy/TMP/Paperlogy-7Bold SDF.asset");
 #endif
+            // 2) 폴백: 기본 LiberationSans(한글 없음 — 최후)
+            if (_tmpFont == null)
+                _tmpFont = UnityEngine.Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
             return _tmpFont;
         }
 

@@ -14,11 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.DialogData
   dialogId: S012-01
   spawnItemId: 
-  description: "2-2\uBC18. \uC0AC\uBB3C\uD568 \uBA87 \uAC1C\uAC00 \uC5F4\uB9B0 \uCC44
-    \uBE44\uC5B4 \uC788\uB2E4. \uCCAD\uC18C\uB3C4\uAD6C\uD568 \uBB38\uB3C4 \uC0B4\uC9DD
-    \uC5F4\uB824 \uC788\uB2E4."
+  description: "2-2\uBC18. \uC0AC\uBB3C\uD568 \uBA87 \uAC1C\uAC00 \uD65C\uC9DD \uC5F4\uB9B0
+    \uCC44 \uD145 \uBE44\uC5B4 \uC788\uB2E4. \uCCAD\uC18C\uB3C4\uAD6C\uD568 \uBB38\uB3C4
+    \uC0B4\uC9DD \uBE7C\uAF3C. \uC5B4\uB290 \uCABD\uBD80\uD130 \uD138\uC5B4\uBCFC\uAE4C?"
   choices:
-  - label: "\uC0AC\uBB3C\uD568\uC744 \uC0B4\uD540\uB2E4"
+  - label: "\uC0AC\uBB3C\uD568\uBD80\uD130 \uC0B4\uD540\uB2E4"
     requiredItem: 
     resultText: 
     hunger: 0

@@ -73,8 +73,8 @@ namespace SeoulLast
                 irt.sizeDelta = new Vector2(Model.Def.Width * cell, Model.Def.Height * cell);
                 irt.anchoredPosition = Vector2.zero;
             }
-            // 이름 + 상태(회복류 / 내구도)
-            string sub = Model.Def.IsRecovery ? "" : "  x" + Model.Uses;
+            // 이름 + 상태(회복류=없음 / 소모 도구=내구도 / 비소모=무한)
+            string sub = Model.Def.IsRecovery ? "" : (Model.Def.Consumable ? "  x" + Model.Uses : "  ∞");
             var label = UIFactory.Label(transform, "n", Model.Def.Name + sub, 20, TextAlignmentOptions.Center, new Color(0.12f, 0.12f, 0.12f));
             label.raycastTarget = false;
             UIFactory.Fill(label.rectTransform);

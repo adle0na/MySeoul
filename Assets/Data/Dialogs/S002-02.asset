@@ -14,8 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.DialogData
   dialogId: S002-02
   spawnItemId: 
-  description: "\uC790\uBB3C\uC1E0\uB294 \uAFC8\uCA4D\uB3C4 \uC548 \uD55C\uB2E4.
-    \uC190\uD1B1\uB9CC \uAE4C\uC84C\uB2E4. \uC5ED\uC2DC \uB3C4\uAD6C\uAC00 \uC788\uC5B4\uC57C\uACA0\uB2E4."
+  description: "\uB044\uC751\u2014 \uC790\uBB3C\uC1E0\uB294 \uAFC8\uCA4D\uB3C4 \uC548
+    \uD558\uACE0, \uAE4C\uC9C4 \uAC74 \uB0B4 \uC190\uD1B1\uBFD0\uC774\uB2E4. \uC544\uC57C.
+    \uC5ED\uC2DC \uB9E8\uC190\uC740 \uBB34\uB9AC, \uC5F0\uC7A5\uC774 \uD544\uC694\uD574."
   choices:
   - label: 
     requiredItem: 
@@ -28,6 +29,20 @@ MonoBehaviour:
     opensInventory: 0
     newState: 
     nextEventId: S002-01
+    correct: 0
+    rewardItem: 
+    loseRandomItem: 0
+  - label: "\uC5D0\uC787, \uD3EC\uAE30\uD558\uACE0 \uADF8\uB0E5 \uB098\uAC04\uB2E4"
+    requiredItem: 
+    resultText: 
+    hunger: 0
+    thirst: 0
+    pain: 0
+    fatigue: 0
+    bagUpgrade: 0
+    opensInventory: 0
+    newState: 
+    nextEventId: Done
     correct: 0
     rewardItem: 
     loseRandomItem: 0

@@ -14,10 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.DialogData
   dialogId: S022-01
   spawnItemId: 
-  description: "3-2\uBC18. \uCC3D\uBB38 \uB108\uBA38\uB85C \uC625\uC0C1\uC73C\uB85C
-    \uC774\uC5B4\uC9C0\uB294 \uC678\uBCBD \uBC30\uAD00\uC774 \uBCF4\uC778\uB2E4."
+  description: "3-2\uBC18. \uCC3D\uBB38 \uB108\uBA38\uB85C \uC625\uC0C1\uAE4C\uC9C0
+    \uCB49 \uC774\uC5B4\uC9C0\uB294 \uC678\uBCBD \uBC30\uAD00\uC774 \uBCF4\uC778\uB2E4.
+    \uC624\u2026 \uC800\uAC70 \uD0C0\uACE0 \uC62C\uB77C\uAC00\uBA74 \uBC14\uB85C
+    \uC625\uC0C1 \uC544\uB0D0? \uC194\uAE43\uD55C\uB370."
   choices:
-  - label: "\uCC3D\uBB38\uACFC \uBC30\uAD00\uC744 \uC0B4\uD540\uB2E4"
+  - label: "\uCC3D\uBB38\uC774\uB791 \uBC30\uAD00\uC744 \uC0B4\uD3B4\uBCF8\uB2E4"
     requiredItem: 
     resultText: 
     hunger: 0
@@ -31,7 +33,7 @@ MonoBehaviour:
     correct: 0
     rewardItem: 
     loseRandomItem: 0
-  - label: "\uAD50\uC2E4\uC744 \uB4A4\uC9C4\uB2E4"
+  - label: "\uC77C\uB2E8 \uAD50\uC2E4\uC744 \uB4A4\uC9C4\uB2E4"
     requiredItem: 
     resultText: 
     hunger: 0

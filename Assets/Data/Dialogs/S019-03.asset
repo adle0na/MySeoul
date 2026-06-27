@@ -14,10 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.DialogData
   dialogId: S019-03
   spawnItemId: RES006
-  description: "\uC7AC\uB8CC\uD568 \uAD6C\uC11D\uC5D0\uC11C \uACFC\uC790 \uD55C \uBD09\uC9C0\uB97C
-    \uCC3E\uB294\uB2E4."
+  description: "\uC7AC\uB8CC\uD568 \uAD6C\uC11D\uC744 \uB4A4\uC9C0\uB2C8 \uACFC\uC790
+    \uD55C \uBD09\uC9C0\uAC00 \uC3D9! \uBBF8\uC220\uC2E4\uC5D0\uC11C \uC6EC \uACFC\uC790,
+    \uB7ED\uD0A4."
   choices:
-  - label: "\uACFC\uC790\uB97C \uCC59\uAE34\uB2E4"
+  - label: "\uACFC\uC790 \uC90D\uC90D!"
     requiredItem: 
     resultText: 
     hunger: 0

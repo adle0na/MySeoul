@@ -15,9 +15,10 @@ MonoBehaviour:
   dialogId: S004-03
   spawnItemId: RES006
   description: "\uBCF5\uB3C4 \uC911\uAC04, \uC0AC\uBB3C\uD568 \uC704\uC5D0 \uACFC\uC790
-    \uD55C \uBD09\uC9C0\uAC00 \uB193\uC5EC \uC788\uB2E4."
+    \uD55C \uBD09\uC9C0\uAC00 \uC58C\uC804\uD788 \uB193\uC5EC \uC788\uB2E4. \uC774\uB7F0
+    \uAC8C \uB610 \uB208\uC5D0 \uC798 \uB748\uB2E8 \uB9D0\uC774\uC9C0."
   choices:
-  - label: "\uACFC\uC790\uB97C \uCC59\uAE34\uB2E4"
+  - label: "\uACFC\uC790 \uC90D\uC90D!"
     requiredItem: 
     resultText: 
     hunger: 0

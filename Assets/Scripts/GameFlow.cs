@@ -16,6 +16,8 @@ namespace SeoulLast
         [SerializeField] EventData[] events;
         [SerializeField] DialogData[] dialogs;   // 대화 노드(event_dialog 시트)
         [SerializeField] ItemData[] items;       // 시트 아이템 (대화 등장 물건 지급용)
+        [SerializeField] LocationData[] locations; // 장소(Location 시트, 지도 선택지)
+        [SerializeField] TMP_FontAsset uiFont;     // 런타임 생성 텍스트용 한글 폰트(UIFactory 주입)
 
         const float W = 1080f, H = 1920f;
         const int GRID_W = 6, GRID_H = 6;   // 그리드 최대 크기(6x6). 시작 활성영역은 중앙 2x2(Stage)
@@ -39,7 +41,8 @@ namespace SeoulLast
         const int STAGE_LEN = 5;        // 1스테이지 = 5 이벤트
         int stageNo = 0;                // 0 = 온보딩, 1+ = 실전 스테이지
         int eventsThisStage = 0;        // 이번 스테이지에서 진행한 이벤트 수(실전만 카운트)
-        string stageRegion = "";        // 현재 스테이지 지역(지도에서 선택)
+        string stageRegion = "";        // 현재 스테이지 매칭 키 = LocationID (이벤트 EventRegion과 매칭)
+        string stageLocationName = "";  // 상단바 표시용 장소 이름
 
         // ---- 인벤토리 (그리드 가방 only, 창고 없음) ----
         // bag = 그리드에 배치된 것(= 실제 보유). tray = 이번 정비에서 아직 안 넣은 획득품(미배치).
@@ -75,12 +78,15 @@ namespace SeoulLast
         Image itemImg;                  // 다가오는 아이템
         RectTransform eventCard;        // 하단 이벤트 카드
         Button bagToggleBtn;            // 하단 가방 토글
-        bool walking;                   // 걷는 중(배경 스크롤)
+        bool walking;                   // 걷는 중(배경 스크롤 + Spine 재생)
         float itemMeetX;                // 아이템이 멈출 x(캐릭터 위치)
         const float SCROLL_SPEED = 0.18f;
+        Component charSpine;            // Spine SkeletonGraphic (리플렉션 제어)
+        System.Reflection.FieldInfo spineTimeScale;
 
         void Awake()
         {
+            if (uiFont != null) UIFactory.Override = uiFont;   // 런타임 텍스트 한글 폰트
             // 6x6 그리드, 중앙 2x2 활성(Stage 1). 나머지 칸은 딤(배치 불가).
             bag.Width = GRID_W; bag.Height = GRID_H; bag.FullGrid = false; bag.Stage = 1;
             // 씬에 미리 배치된 FlowCanvas가 있으면 그걸 바인딩(UI 개발자 작업물), 없으면 코드로 생성(폴백)
@@ -128,6 +134,17 @@ namespace SeoulLast
                 statusLabel[i] = c.Find("EventPanel/Status_GridLayout/Status" + i + "/L").GetComponent<TextMeshProUGUI>();
             }
             bagToggleBtn = c.Find("EventPanel/BagToggle").GetComponent<Button>();
+            // Spine 캐릭터(있으면) — timeScale 제어용 캐싱(리플렉션, Spine 의존 회피)
+            var csT = c.Find("EventPanel/CharSpine");
+            if (csT != null)
+            {
+                var sgType = System.Type.GetType("Spine.Unity.SkeletonGraphic, spine-unity");
+                if (sgType != null)
+                {
+                    charSpine = csT.GetComponent(sgType);
+                    if (charSpine != null) spineTimeScale = sgType.GetField("timeScale");
+                }
+            }
             mapArea = c.Find("MapPanel/MapArea").GetComponent<RectTransform>();
             gridRect = c.Find("BagPanel/Grid").GetComponent<RectTransform>();
             slotsRect = c.Find("BagPanel/Slots").GetComponent<RectTransform>();
@@ -373,7 +390,9 @@ namespace SeoulLast
         void RenderDialog()
         {
             ClearChoices();
-            eventTitle.text = curDialog != null && !string.IsNullOrEmpty(curDialog.spawnItemId) ? "무언가를 발견했다!" : "";
+            // [개발용] 이벤트/대화 ID 표시 — 나중에 제거
+            string devTag = $"<color=#ff6666>[{(curEvent != null ? curEvent.eventId : "?")} / {(curDialog != null ? curDialog.dialogId : "?")}]</color>";
+            eventTitle.text = devTag + (curDialog != null && !string.IsNullOrEmpty(curDialog.spawnItemId) ? "  무언가를 발견했다!" : "");
             string body = string.IsNullOrWhiteSpace(curDialog.description)
                 ? $"<color=#888888>(임시) {curEvent.eventType}{(string.IsNullOrEmpty(curEvent.region) ? "" : " · " + curEvent.region)} — 대화 준비 중</color>"
                 : curDialog.description;
@@ -398,10 +417,11 @@ namespace SeoulLast
                 var a = auto;
                 AddConfirm(() => { if (a != null) OnDialogBranch(a); else EndEvent(); });
             }
+            if (choiceArea != null) choiceArea.gameObject.SetActive(false);   // 타이핑 끝난 뒤 노출
             Only(eventPanel);
             UpdateTopBar();
             UpdateStatusRail();
-            StartApproach();   // 걷기 + 아이템 접근 후 카드 표시
+            StartApproach();   // 걷기 + 아이템 접근 후 카드 표시 → 텍스트 타이핑
         }
 
         // ---------- Explore 연출 ----------
@@ -411,6 +431,11 @@ namespace SeoulLast
             {
                 var r = bgRaw.uvRect; r.x += SCROLL_SPEED * Time.deltaTime; bgRaw.uvRect = r;
             }
+            // 이벤트 카드(만남) 중엔 walking=false → Spine 정지, 이동 중엔 재생
+            if (charSpine != null && spineTimeScale != null)
+                spineTimeScale.SetValue(charSpine, walking ? 1f : 0f);
+            // 타이핑 중 터치하면 즉시 전체 표시
+            if (revealing && Input.GetMouseButtonDown(0)) FinishReveal();
         }
 
         void StartApproach()
@@ -441,6 +466,42 @@ namespace SeoulLast
             }
             walking = false;
             if (eventCard != null) eventCard.gameObject.SetActive(true);
+            StartReveal();   // 카드 표시 후 텍스트 디지털 타이핑
+        }
+
+        // ---------- 텍스트 타이핑 연출 (터치 시 스킵) ----------
+        bool revealing;
+        Coroutine revealRoutine;
+
+        void StartReveal()
+        {
+            if (eventBody == null) { if (choiceArea != null) choiceArea.gameObject.SetActive(true); return; }
+            eventBody.ForceMeshUpdate();
+            int total = eventBody.textInfo.characterCount;
+            if (total <= 0) { revealing = false; if (choiceArea != null) choiceArea.gameObject.SetActive(true); return; }
+            eventBody.maxVisibleCharacters = 0;
+            revealing = true;
+            revealRoutine = StartCoroutine(RevealCo(total));
+        }
+
+        IEnumerator RevealCo(int total)
+        {
+            int vis = 0;
+            while (vis < total)
+            {
+                vis += 2;                       // 디지털 타이핑(2글자씩 빠르게)
+                eventBody.maxVisibleCharacters = vis;
+                yield return new WaitForSeconds(0.02f);
+            }
+            FinishReveal();
+        }
+
+        void FinishReveal()
+        {
+            revealing = false;
+            if (revealRoutine != null) { StopCoroutine(revealRoutine); revealRoutine = null; }
+            if (eventBody != null) eventBody.maxVisibleCharacters = 99999;
+            if (choiceArea != null) choiceArea.gameObject.SetActive(true);   // 선택지는 타이핑 끝나고 노출
         }
 
         IEnumerator FlyItemToBag(System.Action done)
@@ -462,7 +523,7 @@ namespace SeoulLast
         void UpdateTopBar()
         {
             if (dayText == null) return;
-            string place = stageNo == 0 ? "체육창고" : (string.IsNullOrEmpty(stageRegion) ? "어딘가" : stageRegion);
+            string place = stageNo == 0 ? "체육창고" : (string.IsNullOrEmpty(stageLocationName) ? "어딘가" : stageLocationName);
             string d = stageNo == 0 ? "온보딩" : "DAY " + stageNo;
             dayText.text = $"{d}     {place}     ({Mathf.Min(eventsThisStage + 1, STAGE_LEN)}/{STAGE_LEN})";
         }
@@ -493,13 +554,22 @@ namespace SeoulLast
             var pool = new List<EventData>();
             foreach (var ev in events)
             {
-                if (ev == null || ev.eventType == "온보딩") continue;
+                if (ev == null || ev.eventType == "온보딩" || ev.eventType == "시나리오") continue; // 시나리오는 첫 이벤트 전용
                 if (string.IsNullOrEmpty(ev.startDialogId)) continue;   // 대화 없는(빈) 이벤트는 제외
                 bool general = ev.eventType == "일반";
                 bool regionMatch = ev.eventType == "특정지역" && ev.region == stageRegion;
                 if (general || regionMatch) pool.Add(ev);
             }
             return pool.Count == 0 ? "" : pool[rng.Next(pool.Count)].eventId;
+        }
+
+        // 해당 장소의 시나리오 이벤트(스테이지 첫 이벤트). 없으면 "".
+        string FindScenarioEvent(string locId)
+        {
+            foreach (var ev in events)
+                if (ev != null && ev.eventType == "시나리오" && ev.region == locId && !string.IsNullOrEmpty(ev.startDialogId))
+                    return ev.eventId;
+            return "";
         }
 
         // 이벤트(대화 그래프) 종료 → 스테이지 진행(다음 이벤트/휴식)
@@ -552,15 +622,21 @@ namespace SeoulLast
             if (cells.Count == 0) cells.Add(Vector2Int.zero);
             var def = new ItemDef(d.itemId, string.IsNullOrEmpty(d.itemName) ? d.itemId : d.itemName,
                 new Color(0.62f, 0.6f, 0.5f), cells);
-            def.MaxUses = d.durability > 0 ? d.durability : 1;
             def.Icon = d.icon;
 
-            // 회복 매핑 (이름/타입 기반) — 지급된 자원/회복 아이템을 가방에서 사용 가능
+            // 회복 매핑 (이름/타입 기반) — 회복류는 1회 소모
             string n = d.itemName ?? "";
-            if (n.Contains("빵") || n.Contains("통조림") || n.Contains("라면")) { def.RecoverStat = 0; def.RecoverAmt = 35; def.MaxUses = 1; }
-            else if (n.Contains("음료") || n.Contains("생수") || n.Contains("물")) { def.RecoverStat = 1; def.RecoverAmt = 35; def.MaxUses = 1; }
-            else if (d.itemType == "회복" || n.Contains("구급") || n.Contains("붕대")) { def.RecoverStat = 2; def.RecoverAmt = 45; def.MaxUses = 1; }
-            else if (n.Contains("각성")) { def.RecoverStat = 3; def.RecoverAmt = 40; def.MaxUses = 1; }
+            if (n.Contains("빵") || n.Contains("통조림") || n.Contains("라면")) { def.RecoverStat = 0; def.RecoverAmt = 35; def.MaxUses = 1; def.Consumable = true; }
+            else if (n.Contains("음료") || n.Contains("생수") || n.Contains("물")) { def.RecoverStat = 1; def.RecoverAmt = 35; def.MaxUses = 1; def.Consumable = true; }
+            else if (d.itemType == "회복" || n.Contains("구급") || n.Contains("붕대")) { def.RecoverStat = 2; def.RecoverAmt = 45; def.MaxUses = 1; def.Consumable = true; }
+            else if (n.Contains("각성")) { def.RecoverStat = 3; def.RecoverAmt = 40; def.MaxUses = 1; def.Consumable = true; }
+            else
+            {
+                // 도구: durability>0이면 그만큼 소모(내구도), <=0(손상없음)이면 무한
+                bool wears = d.durability > 0;
+                def.Consumable = wears;
+                def.MaxUses = wears ? d.durability : 9999;
+            }
             return def;
         }
 
@@ -575,10 +651,10 @@ namespace SeoulLast
 
         void AfterEventResolve(string nextId)
         {
-            // 실전 스테이지만: 시간 경과(상태 악화) + 사망 판정 + 5이벤트 카운트
+            // 실전 스테이지만: 사망 판정(선택 결과/유발 상태이상) + 5이벤트 카운트
+            // 시간 경과 악화는 매 이벤트가 아니라 1 Day(스테이지) 단위(StartStage)에서 처리
             if (stageNo >= 1)
             {
-                for (int i = 0; i < 4; i++) status[i] = Clamp(status[i] + DailyInc[i]);
                 for (int i = 0; i < 4; i++) if (status[i] >= 100) { ShowGameOver(i); return; }
                 eventsThisStage++;
                 if (eventsThisStage >= STAGE_LEN) { ShowRest(); return; }
@@ -603,34 +679,39 @@ namespace SeoulLast
             Only(restPanel);
         }
 
-        // 지도에서 지역 선택 → 다음 스테이지 시작
-        void StartStage(string region)
+        // 지도에서 장소 선택 → 다음 스테이지 시작 (첫 이벤트 = 그 장소 시나리오)
+        void StartStage(string locId, string locName)
         {
             stageNo++;
-            stageRegion = region;
+            stageRegion = locId;          // 매칭 키 = LocationID (이벤트 EventRegion과 일치)
+            stageLocationName = locName;  // 표시명
             eventsThisStage = 0;
-            forcedNextId = "random";   // 첫 이벤트는 지역+일반 풀에서 랜덤
+            // 1 Day(스테이지)마다 허기·갈증 악화(+5). 100 도달 시 사망.
+            status[0] = Clamp(status[0] + 5);
+            status[1] = Clamp(status[1] + 5);
+            for (int i = 0; i < 4; i++) if (status[i] >= 100) { ShowGameOver(i); return; }
+            string sc = FindScenarioEvent(locId);
+            forcedNextId = !string.IsNullOrEmpty(sc) ? sc : "random";
             PlayNextEvent();
         }
 
         void ShowMap()
         {
             for (int i = mapArea.childCount - 1; i >= 0; i--) Destroy(mapArea.GetChild(i).gameObject);
-            var regions = new List<string>();
-            foreach (var ev in events)
-                if (ev != null && ev.eventType == "특정지역" && !string.IsNullOrEmpty(ev.region) && !regions.Contains(ev.region))
-                    regions.Add(ev.region);
-            float y = 0;
-            foreach (var r in regions)
+            float y = 0; int shown = 0;
+            // Location 시트: 잠금 해제된 장소만 노출
+            if (locations != null)
+                foreach (var l in locations)
+                {
+                    if (l == null || l.isLock) continue;
+                    var lid = l.locationId; var lname = l.locationName;
+                    TextMeshProUGUI tl; var b = UIFactory.Button(mapArea, "loc", lname, new Color(0.32f, 0.45f, 0.6f), () => StartStage(lid, lname), out tl);
+                    UIFactory.SetRect(b.GetComponent<RectTransform>(), 0, y, 920, 120); y += 134; shown++;
+                }
+            if (shown == 0)
             {
-                var rr = r;
-                TextMeshProUGUI tl; var b = UIFactory.Button(mapArea, "loc", r, new Color(0.32f, 0.45f, 0.6f), () => StartStage(rr), out tl);
-                UIFactory.SetRect(b.GetComponent<RectTransform>(), 0, y, 920, 130); y += 150;
-            }
-            if (regions.Count == 0)
-            {
-                TextMeshProUGUI tl; var b = UIFactory.Button(mapArea, "loc", "어디든 (일반)", new Color(0.32f, 0.45f, 0.6f), () => StartStage(""), out tl);
-                UIFactory.SetRect(b.GetComponent<RectTransform>(), 0, 0, 920, 130);
+                TextMeshProUGUI tl; var b = UIFactory.Button(mapArea, "loc", "어디든 (일반)", new Color(0.32f, 0.45f, 0.6f), () => StartStage("", "어디든"), out tl);
+                UIFactory.SetRect(b.GetComponent<RectTransform>(), 0, 0, 920, 120);
             }
             Only(mapPanel);
         }
@@ -752,9 +833,9 @@ namespace SeoulLast
         void ConsumeUse(string key)
         {
             foreach (var p in bag.Placed)
-                if (Match(p, key) && p.Uses > 0) { p.Uses--; if (p.Uses <= 0) bag.RemoveFromBag(p); return; }
+                if (Match(p, key) && p.Uses > 0) { if (!p.Def.Consumable) return; p.Uses--; if (p.Uses <= 0) bag.RemoveFromBag(p); return; }
             foreach (var p in tray)
-                if (Match(p, key) && p.Uses > 0) { p.Uses--; if (p.Uses <= 0) tray.Remove(p); return; }
+                if (Match(p, key) && p.Uses > 0) { if (!p.Def.Consumable) return; p.Uses--; if (p.Uses <= 0) tray.Remove(p); return; }
         }
 
         // ---------- 상태/텍스트 ----------

@@ -14,11 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.DialogData
   dialogId: O001-09
   spawnItemId: 
-  description: "\uBCF5\uB3C4\uB85C \uB098\uC624\uB2C8 \uC544\uBB34\uB3C4 \uC5C6\uB2E4.
-    \uC885\uC18C\uB9AC\uB3C4, \uBC1C\uC18C\uB9AC\uB3C4 \uC5C6\uB2E4. \uB108\uBB34
-    \uC870\uC6A9\uD558\uB2E4."
+  description: "\uBCF5\uB3C4\uB85C \uB098\uC654\uB294\uB370\u2026 \uC5B4\uB77C, \uC544\uBB34\uB3C4
+    \uC5C6\uB124? \uC885\uC18C\uB9AC\uB3C4, \uBC1C\uC18C\uB9AC\uB3C4, \uB5A0\uB4DC\uB294
+    \uC560\uB4E4\uB3C4 \uC5C6\uB2E4. \uC774 \uD559\uAD50\uAC00 \uC774\uB807\uAC8C
+    \uC870\uC6A9\uD55C \uC801\uC774 \uC788\uC5C8\uB098? \uC880 \uC73C\uC2A4\uC2A4\uD55C\uB370."
   choices:
-  - label: "\uAD50\uC2E4\uB85C \uAC00\uBCF4\uC790"
+  - label: "\uC77C\uB2E8 \uAD50\uC2E4\uB85C \uAC00\uBCFC\uAE4C"
     requiredItem: 
     resultText: 
     hunger: 0
@@ -32,7 +33,7 @@ MonoBehaviour:
     correct: 0
     rewardItem: 
     loseRandomItem: 0
-  - label: "\uBCF5\uB3C4\uB97C \uC218\uC0C9\uD574\uBCF4\uC790"
+  - label: "\uBCF5\uB3C4\uBD80\uD130 \uC2AC\uCA4D \uB458\uB7EC\uBCFC\uAE4C"
     requiredItem: 
     resultText: 
     hunger: 0

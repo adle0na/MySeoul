@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.DialogData
   dialogId: S005-05
   spawnItemId: 
-  description: "\uAE09\uC2DD\uC2E4\uC740 \uB108\uBB34 \uC704\uD5D8\uD558\uB2E4. \uC624\uB798
-    \uBA38\uBB34\uB97C \uACF3\uC774 \uBABB \uB41C\uB2E4."
+  description: "\uAE09\uC2DD\uC2E4\uC740 \uB108\uBB34 \uC704\uD5D8\uD574. \uC5EC\uAE34
+    \uC624\uB798 \uC788\uC744 \uACF3\uC774 \uBABB \uB418\uACA0\uB2E4."
   choices:
   - label: 
     requiredItem: 

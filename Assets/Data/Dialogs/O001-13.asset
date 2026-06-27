@@ -14,9 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.DialogData
   dialogId: O001-13
   spawnItemId: 
-  description: "\uC2DD\uB7C9\uC740 \uAC00\uBC29\uC5D0\uC11C \uB354\uBE14\uD074\uB9AD\uD558\uBA74
-    \uBC14\uB85C \uBA39\uC744 \uC218 \uC788\uB2E4. \uBA39\uC73C\uBA74 \uBC30\uACE0\uD514\uC774
-    \uCC28\uC624\uB978\uB2E4."
+  description: "\uBA39\uB294 \uBC95\uC740 \uAC04\uB2E8\uD574. \uAC00\uBC29\uC744
+    \uC5F4\uACE0 \u2192 \uBA39\uC744 \uAC78 \uD074\uB9AD \u2192 '\uC18C\uBE44' \uBC84\uD2BC!
+    \uADF8\uB7FC \uBC14\uB85C \uB0E0\uB0E0, \uBC30\uAC00 \uB4E0\uB4E0\uD574\uC9C0\uBA74\uC11C
+    \uC544\uAE4C \uADF8 \uACBD\uACE0 \uC544\uC774\uCF58\uB3C4 \uC3D9 \uC0AC\uB77C\uC9C4\uB2E4.
+    \uC27D\uC9C0?"
   choices:
   - label: 
     requiredItem: 
@@ -28,7 +30,7 @@ MonoBehaviour:
     bagUpgrade: 0
     opensInventory: 0
     newState: 
-    nextEventId: O001-15
+    nextEventId: O001-13B
     correct: 0
     rewardItem: 
     loseRandomItem: 0
