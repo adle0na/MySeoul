@@ -202,11 +202,21 @@ namespace SeoulLast.EditorTools
                 EditorUtility.DisplayDialog("오류", $"{csvPath} 없음.\n먼저 ① 최신화를 실행하세요.", "확인");
                 return;
             }
+            var res = RunImportEvents();
+            if (res == null) { EditorUtility.DisplayDialog("오류", "Event.csv에서 'EventId' 헤더를 찾지 못했습니다.", "확인"); return; }
+            EditorUtility.DisplayDialog("임포트 완료", $"이벤트 생성 {res[0]}개 / 갱신 {res[1]}개\n폴더: {eventAssetFolder}", "확인");
+        }
+
+        // 다이얼로그 없는 핵심 로직 (테스트/자동화용). 반환: {생성, 갱신}, 헤더 못 찾으면 null.
+        public int[] RunImportEvents()
+        {
+            string csvPath = Path.Combine(csvFolder, "Event.csv");
+            if (!File.Exists(csvPath)) return null;
             Directory.CreateDirectory(eventAssetFolder);
 
             var rows = CsvParser.Parse(File.ReadAllText(csvPath));
             int headerRow = FindHeaderRow(rows, "EventId");
-            if (headerRow < 0) { EditorUtility.DisplayDialog("오류", "Event.csv에서 'EventId' 헤더를 찾지 못했습니다.", "확인"); return; }
+            if (headerRow < 0) return null;
             var col = MapColumns(rows[headerRow]);
 
             int created = 0, updated = 0;
@@ -221,35 +231,42 @@ namespace SeoulLast.EditorTools
                 bool isNew = ev == null;
                 if (isNew) ev = ScriptableObject.CreateInstance<EventData>();
 
+                // ----- 시트 기본 정보 -----
                 ev.eventId = id;
-                ev.eventName = Get(row, col, "EventName");
+                ev.eventName = id;                                  // 시트에 이름 컬럼 없음 → Id로
                 ev.eventType = Get(row, col, "EventType");
-                ev.eventCategory = Get(row, col, "EventCategory");
-                ev.probability = ParseInt(Get(row, col, "EventProbability"));
                 ev.hasBranch = Get(row, col, "EventHasBranch");
                 ev.region = Get(row, col, "EventRegion");
-                ev.regionEntryCondition = Get(row, col, "EventRegionEntryCondition");
-                ev.regionSpecialEffect = Get(row, col, "EventRegionSpecialEffect");
-                ev.relatedItemId = Get(row, col, "EventRelatedItemId");
-                ev.itemOwnedResult = Get(row, col, "EventItemOwnedResult");
-                ev.itemNotOwnedResult = Get(row, col, "EventItemNotOwnedResult");
-                ev.branchAResult = Get(row, col, "EventBranchAResult");
-                ev.branchBResult = Get(row, col, "EventBranchBResult");
-                ev.foodWaterChange = ParseInt(Get(row, col, "EventFoodWaterChange"));
-                ev.weaponAmmoChange = ParseInt(Get(row, col, "EventWeaponAmmoChange"));
-                ev.moraleChange = ParseInt(Get(row, col, "EventMoraleChange"));
-                ev.medicalSupplyChange = ParseInt(Get(row, col, "EventMedicalSupplyChange"));
+                ev.objectId = Get(row, col, "EventObjectID");
+                ev.description = Get(row, col, "EventDescription");
+                ev.situation = ev.description;                      // GameFlow가 situation을 표시
 
-                // 상태이상/메타 5컬럼은 영어 헤더가 비어 있어, MedicalSupplyChange 다음 위치로 매핑
-                int baseIdx;
-                if (col.TryGetValue("EventMedicalSupplyChange", out baseIdx))
-                {
-                    ev.statusEffect = At(row, baseIdx + 1);
-                    ev.statusDuration = ParseInt(At(row, baseIdx + 2));
-                    ev.statusModifier = At(row, baseIdx + 3);
-                    ev.difficulty = At(row, baseIdx + 4);
-                    ev.note = At(row, baseIdx + 5);
-                }
+                // ----- 분기 A/B/C → choices -----
+                var list = new List<EventChoice>();
+                AddBranch(list, Get(row, col, "EventBranchA"),
+                    Get(row, col, "EventBranchAResult"),
+                    Get(row, col, "EventBranchAOpensInventory"),
+                    Get(row, col, "EventBranchANewState"),
+                    Get(row, col, "NextEventIdByA"));
+                AddBranch(list, Get(row, col, "EventBranchB"),
+                    Get(row, col, "EventBranchBResult"),
+                    Get(row, col, "EventBranchBOpensInventory"),
+                    Get(row, col, "EventBranchBNewState"),
+                    Get(row, col, "NextEventIdByB"));
+                // C 결과 헤더는 시트에 'EventBranchBResult'로 잘못 적혀 있어, EventBranchC 다음 칸을 위치로 읽음
+                int cIdx; string cResult = "";
+                if (col.TryGetValue("EventBranchC", out cIdx)) cResult = At(row, cIdx + 1);
+                AddBranch(list, Get(row, col, "EventBranchC"),
+                    cResult,
+                    Get(row, col, "EventBranchCOpensInventory"),
+                    Get(row, col, "EventBranchCNewState"),
+                    Get(row, col, "NextEventIdByC"));
+                ev.choices = list.ToArray();
+
+                // ----- 유발 상태이상 (마지막 컬럼, 영어 헤더 비어 있음) -----
+                int lastIdx;
+                if (col.TryGetValue("NextEventIdByC", out lastIdx))
+                    ev.statusEffect = At(row, lastIdx + 1);
 
                 if (isNew) { AssetDatabase.CreateAsset(ev, assetPath); created++; }
                 else { EditorUtility.SetDirty(ev); updated++; }
@@ -257,7 +274,21 @@ namespace SeoulLast.EditorTools
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            EditorUtility.DisplayDialog("임포트 완료", $"이벤트 생성 {created}개 / 갱신 {updated}개\n폴더: {eventAssetFolder}", "확인");
+            return new[] { created, updated };
+        }
+
+        // 분기 버튼(label)이 비어 있지 않을 때만 choices에 추가
+        static void AddBranch(List<EventChoice> list, string label, string result, string opensInv, string newState, string nextId)
+        {
+            if (string.IsNullOrWhiteSpace(label)) return;
+            list.Add(new EventChoice
+            {
+                label = label.Trim(),
+                resultText = (result ?? "").Trim(),
+                opensInventory = ParseBool(opensInv),
+                newState = (newState ?? "").Trim(),
+                nextEventId = (nextId ?? "").Trim()
+            });
         }
 
         // 'key' 컬럼명을 포함한 첫 행을 헤더로 간주 (Item=0행, Event=1행에 헤더가 있어 유연 탐지)

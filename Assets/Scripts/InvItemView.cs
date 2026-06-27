@@ -4,19 +4,36 @@ using UnityEngine.UI;
 
 namespace SeoulLast
 {
-    // 메인화면 인벤토리 아이템. 창고(StorageRect) ↔ 가방(BagGridRect) 드래그.
+    // 그리드 가방을 쓰는 화면이 구현하는 호스트 계약.
+    // 창고 개념을 없앤 새 흐름에서 StorageRect = "획득 대기 트레이", TrashRect = "버리기 존".
+    public interface IBagHost
+    {
+        RectTransform BagGridRect { get; }   // 그리드(셀 좌표 기준 배치)
+        RectTransform BagDragLayer { get; }  // 드래그 중 최상단 레이어
+        RectTransform StorageRect { get; }   // 미배치 아이템(트레이). null이면 비활성
+        RectTransform TrashRect { get; }     // 버리기 존. null이면 비활성
+        BagModel Bag { get; }
+        bool LockerOpen { get; }
+        float Cell { get; }
+        void PlaceInBag(InvItemView item, Vector2Int origin);
+        void MoveToStorage(InvItemView item);
+        void ReturnToStorage(InvItemView item);
+        void Discard(InvItemView item);
+    }
+
+    // 인벤토리 아이템 뷰. 그리드 ↔ 트레이 드래그, 버리기 존에 놓으면 폐기.
     public class InvItemView : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
     {
         public PlacedItem Model;
         public bool InBag;
 
-        MainScreen host;
+        IBagHost host;
         float cell;
         RectTransform rt;
         CanvasGroup cg;
         Vector2Int grabOffset;
 
-        public void Init(MainScreen h, PlacedItem m, float cellSize)
+        public void Init(IBagHost h, PlacedItem m, float cellSize)
         {
             host = h; Model = m; cell = cellSize;
             rt = GetComponent<RectTransform>();
@@ -43,7 +60,9 @@ namespace SeoulLast
                 crt.sizeDelta = new Vector2(cell - gap * 2, cell - gap * 2);
                 crt.anchoredPosition = new Vector2(c.x * cell + gap, -(c.y * cell + gap));
             }
-            var label = UIFactory.Label(transform, "n", Model.Def.Name, 20, TextAnchor.MiddleCenter, new Color(0.12f, 0.12f, 0.12f));
+            // 이름 + 상태(회복류 / 내구도)
+            string sub = Model.Def.IsRecovery ? "" : "  x" + Model.Uses;
+            var label = UIFactory.Label(transform, "n", Model.Def.Name + sub, 20, TextAnchor.MiddleCenter, new Color(0.12f, 0.12f, 0.12f));
             label.raycastTarget = false;
             UIFactory.Fill(label.rectTransform);
         }
@@ -70,7 +89,15 @@ namespace SeoulLast
         {
             cg.blocksRaycasts = true;
 
-            // 1) 가방 격자 위 → 배치 시도
+            // 1) 버리기 존 위 → 폐기
+            if (host.TrashRect != null &&
+                RectTransformUtility.RectangleContainsScreenPoint(host.TrashRect, e.position, e.pressEventCamera))
+            {
+                host.Discard(this);
+                return;
+            }
+
+            // 2) 그리드 위 → 배치 시도
             Vector2 local;
             if (RectTransformUtility.ScreenPointToLocalPointInRectangle(host.BagGridRect, e.position, e.pressEventCamera, out local))
             {
@@ -88,7 +115,7 @@ namespace SeoulLast
                 }
             }
 
-            // 2) 창고 영역 위 (사물함 열려 있을 때만) → 보관
+            // 3) 트레이 영역 위 → 미배치 보관
             if (host.LockerOpen && host.StorageRect != null &&
                 RectTransformUtility.RectangleContainsScreenPoint(host.StorageRect, e.position, e.pressEventCamera))
             {
@@ -96,7 +123,7 @@ namespace SeoulLast
                 return;
             }
 
-            // 3) 그 외 → 원위치
+            // 4) 그 외 → 원위치
             if (InBag) AttachToBag(Model.Origin);
             else host.ReturnToStorage(this);
         }

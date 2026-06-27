@@ -6,7 +6,7 @@ namespace SeoulLast
 {
     // 메인화면 로직(참조 기반). UI는 씬에 미리 배치하고, 아래 필드에 연결한다.
     // UI 생성은 더 이상 코드가 하지 않음 — 씬의 오브젝트를 참조만 한다.
-    public class MainScreen : MonoBehaviour
+    public class MainScreen : MonoBehaviour, IBagHost
     {
         [Header("상단")]
         [SerializeField] Text dayText;              // "DAY ??" 텍스트
@@ -44,12 +44,22 @@ namespace SeoulLast
         readonly BagModel bag = new BagModel();
         readonly List<InvItemView> storageItems = new List<InvItemView>();
 
-        // InvItemView가 참조하는 접근자
+        // InvItemView(IBagHost)가 참조하는 접근자
         public RectTransform BagGridRect => bagGridRect;
         public RectTransform BagDragLayer => dragLayer;
         public RectTransform StorageRect => storageRect;
+        public RectTransform TrashRect => null;   // 구 프로토타입엔 버리기 존 없음
         public BagModel Bag => bag;
         public bool LockerOpen { get; private set; }
+        public float Cell => bagCell;
+
+        public void Discard(InvItemView item)
+        {
+            if (item.InBag) bag.RemoveFromBag(item.Model);
+            storageItems.Remove(item);
+            Destroy(item.gameObject);
+            LayoutStorage();
+        }
 
         void Start()
         {

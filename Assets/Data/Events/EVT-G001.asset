@@ -1,0 +1,82 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6aa2a7afbc13e824d869983204d074bc, type: 3}
+  m_Name: EVT-G001
+  m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.EventData
+  dayMin: 1
+  dayMax: 99
+  endingId: 
+  situation: "\uBC18\uCBE4 \uC5F4\uB9B0 \uC0AC\uBB3C\uD568\uC774\uB2E4. \uC548\uCABD\uC5D0\uC11C
+    \uBB54\uAC00 \uAD74\uB7EC\uB2E4\uB2C8\uB294 \uC18C\uB9AC\uAC00 \uB09C\uB2E4.
+    \uC790\uBB3C\uC1E0\uB294 \uB204\uAD70\uAC00 \uC774\uBBF8 \uBD80\uC234\uB193\uC740
+    \uAC83 \uAC19\uB2E4."
+  choices:
+  - label: "\uC870\uC6A9\uD788 \uB4A4\uC838\uBCF8\uB2E4"
+    requiredItem: 
+    resultText: "\uC557 \uCEF5\uB77C\uBA74\uC774\uB2E4!"
+    hunger: 0
+    thirst: 0
+    pain: 0
+    fatigue: 0
+    bagUpgrade: 0
+    opensInventory: 0
+    newState: 
+    nextEventId: EVT-G001-1
+    correct: 0
+    rewardItem: 
+    loseRandomItem: 0
+  - label: "\uADF8\uB0E5 \uC9C0\uB098\uCE5C\uB2E4"
+    requiredItem: 
+    resultText: "\uC544\uBB34\uB9AC \uC774\uB7F0\uC0C1\uD669\uC774\uB77C\uB3C4 \uB0A8\uC758
+      \uBB3C\uAC74\uC744 \uD6D4\uCE58\uBA74 \uC548\uB418\uC9C0!"
+    hunger: 0
+    thirst: 0
+    pain: 0
+    fatigue: 0
+    bagUpgrade: 0
+    opensInventory: 0
+    newState: 
+    nextEventId: random
+    correct: 0
+    rewardItem: 
+    loseRandomItem: 0
+  objectId: 
+  description: "\uBC18\uCBE4 \uC5F4\uB9B0 \uC0AC\uBB3C\uD568\uC774\uB2E4. \uC548\uCABD\uC5D0\uC11C
+    \uBB54\uAC00 \uAD74\uB7EC\uB2E4\uB2C8\uB294 \uC18C\uB9AC\uAC00 \uB09C\uB2E4.
+    \uC790\uBB3C\uC1E0\uB294 \uB204\uAD70\uAC00 \uC774\uBBF8 \uBD80\uC234\uB193\uC740
+    \uAC83 \uAC19\uB2E4."
+  eventId: EVT-G001
+  eventName: EVT-G001
+  eventType: "\uC77C\uBC18"
+  eventCategory: 
+  probability: 0
+  hasBranch: 
+  region: 
+  regionEntryCondition: 
+  regionSpecialEffect: 
+  relatedItemId: 
+  itemOwnedResult: 
+  itemNotOwnedResult: 
+  branchAResult: 
+  branchBResult: 
+  foodWaterChange: 0
+  weaponAmmoChange: 0
+  moraleChange: 0
+  medicalSupplyChange: 0
+  failFoodWater: 0
+  failMorale: 0
+  failMedical: 0
+  statusEffect: "\uC5C6\uC74C"
+  statusDuration: 0
+  statusModifier: 
+  difficulty: 
+  note: 

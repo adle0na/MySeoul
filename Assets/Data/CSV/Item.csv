@@ -1,7 +1,9 @@
 ItemID,ItemName,ItemType,ItemDurability,ItemDescription,ItemSellGoldPrice,ItemBuyGoldPrice,ItemCashPrice,ItemCanBeDamaged,ItemSpecialEvent,ItemResourcePath,ItemResourceName
 string,string,enum,int,string,int,int,int,bool,string,string,string
 ID,아이템명,카테고리,내구도,설명,골드 판매가,골드 구매가,캐시 구매가,아이템이 손상되는지 여부,아이템에 연동이벤트 있는 경우,아이템 리소스 폴더 경로,리소스 파일명
-WPN001,녹슨 파이프,무기,60,폐허에서 흔히 볼 수 있는 금속 파이프. 무겁지만 무기가 없는 것보단 낫다.,30,30,-1,,,,
+TOO001,빠루,도구,3,체육창고에서 줍줍한 빠루. ,,,,,,,
+TOO002,드라이버,도구,3,체육창고에서 줍줍한 드라이버,,,,,,,
+RES001,빵,자원,-1,매점에서 파는 싸구려 빵이다.,,,,,,,
 WPN002,개조 샷건,무기,120,산탄을 발사하는 개조 총기. 근거리에서 강력하나 재장전이 느리다.,280,280,-1,,,,
 WPN003,생존자의 활,무기,90,소음이 없어 적에게 들키지 않고 사냥 가능. 화살 재사용 가능.,200,200,-1,,,,
 WPN004,전설의 군도,무기,300,종말 이전 군사 특수부대가 사용하던 전술 나이프. 날카롭기 그지없다.,999,999,-1,,,,
