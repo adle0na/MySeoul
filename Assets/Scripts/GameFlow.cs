@@ -120,6 +120,7 @@ namespace SeoulLast
             bagBody = c.Find("BagPanel/Info").GetComponent<TextMeshProUGUI>();
             eventTitle = c.Find("EventPanel/Card/TextBox/T").GetComponent<TextMeshProUGUI>();
             eventBody = c.Find("EventPanel/Card/B").GetComponent<TextMeshProUGUI>();
+            if (eventBody != null) eventBody.raycastTarget = false;   // 본문 텍스트가 카드 전체를 덮어 클릭 가로채는 것 방지
             endingBody = c.Find("EndingPanel/Box/B").GetComponent<TextMeshProUGUI>();
             goBody = c.Find("GameOverPanel/Box/B").GetComponent<TextMeshProUGUI>();
             restBody = c.Find("RestPanel/Box/B").GetComponent<TextMeshProUGUI>();
@@ -451,8 +452,22 @@ namespace SeoulLast
             // 이벤트 카드(만남) 중엔 walking=false → Spine 정지, 이동 중엔 재생
             if (charSpine != null && spineTimeScale != null)
                 spineTimeScale.SetValue(charSpine, walking ? 1f : 0f);
-            // 타이핑 중 터치하면 즉시 전체 표시
-            if (revealing && Input.GetMouseButtonDown(0)) FinishReveal();
+            // 타이핑 중 터치/클릭하면 즉시 전체 표시
+            if (revealing && TapDown()) FinishReveal();
+        }
+
+        // 클릭/터치 다운 (Input System / 레거시 모두 대응)
+        static bool TapDown()
+        {
+#if ENABLE_INPUT_SYSTEM
+            var m = UnityEngine.InputSystem.Mouse.current;
+            if (m != null && m.leftButton.wasPressedThisFrame) return true;
+            var ts = UnityEngine.InputSystem.Touchscreen.current;
+            if (ts != null && ts.primaryTouch.press.wasPressedThisFrame) return true;
+            return false;
+#else
+            return Input.GetMouseButtonDown(0);
+#endif
         }
 
         void StartApproach()
@@ -901,6 +916,9 @@ namespace SeoulLast
             var tmp = go.GetComponentInChildren<TextMeshProUGUI>();
             if (tmp != null) tmp.text = lbl;
             var btn = go.GetComponent<UnityEngine.UI.Button>();
+            // 프리팹 BG의 raycastTarget이 꺼져 있으면 클릭이 안 잡힘 → 켜서 클릭 영역 확보
+            var bgImg = go.GetComponentInChildren<UnityEngine.UI.Image>();
+            if (bgImg != null) { bgImg.raycastTarget = true; btn.targetGraphic = bgImg; }
             btn.interactable = enabled;
             if (enabled) { var cc = c; btn.onClick.AddListener(() => OnDialogBranch(cc)); }
         }
@@ -918,6 +936,8 @@ namespace SeoulLast
             var tmp = go.GetComponentInChildren<TextMeshProUGUI>();
             if (tmp != null) tmp.text = "확인";
             var btn = go.GetComponent<UnityEngine.UI.Button>();
+            var bgImg = go.GetComponentInChildren<UnityEngine.UI.Image>();
+            if (bgImg != null) { bgImg.raycastTarget = true; btn.targetGraphic = bgImg; }
             if (onConfirm != null) btn.onClick.AddListener(onConfirm);
         }
 
