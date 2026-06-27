@@ -740,6 +740,7 @@ namespace SeoulLast
                 foreach (var l in locations)
                 {
                     if (l == null || l.isLock) continue;
+                    if (l.floor <= 0) continue;   // 층 미지정(기타)은 지도에서 제외
                     if (!byFloor.TryGetValue(l.floor, out var list)) { list = new List<LocationData>(); byFloor[l.floor] = list; }
                     list.Add(l);
                 }
