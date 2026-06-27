@@ -198,6 +198,10 @@ namespace SeoulLast.EditorTools
                 item.resourcePath = Get(row, col, "ItemResourcePath");
                 item.resourceName = Get(row, col, "ItemResourceName");
 
+                // 리소스 경로 → 스프라이트 로드 (절대경로/따옴표/역슬래시 정규화)
+                var loaded = LoadIconSprite(item.resourcePath, item.resourceName);
+                if (loaded != null) item.icon = loaded;
+
                 // 시트에 모양 컬럼이 없으므로, 인스펙터에서 칠한 모양은 그대로 보존
                 item.EnsureSize();
 
@@ -399,6 +403,21 @@ namespace SeoulLast.EditorTools
         {
             s = (s ?? "").Trim().ToUpper();
             return s == "TRUE" || s == "1" || s == "O" || s == "Y" || s == "YES";
+        }
+
+        // 리소스 경로(절대/상대/따옴표/역슬래시) → Assets 상대경로의 Sprite 로드
+        static Sprite LoadIconSprite(string path, string fileName)
+        {
+            string p = (path ?? "").Trim().Trim('"').Replace('\\', '/');
+            if (string.IsNullOrEmpty(p)) return null;
+            int idx = p.IndexOf("Assets/", System.StringComparison.OrdinalIgnoreCase);
+            if (idx >= 0) p = p.Substring(idx);
+            if (!System.IO.Path.HasExtension(p) && !string.IsNullOrEmpty(fileName))
+                p = p.TrimEnd('/') + "/" + fileName.Trim().Trim('"');
+            if (!p.StartsWith("Assets/")) return null;
+            var imp = AssetImporter.GetAtPath(p) as TextureImporter;
+            if (imp != null && imp.textureType != TextureImporterType.Sprite) { imp.textureType = TextureImporterType.Sprite; imp.SaveAndReimport(); }
+            return AssetDatabase.LoadAssetAtPath<Sprite>(p);
         }
     }
 }

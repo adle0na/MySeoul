@@ -14,7 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.DialogData
   dialogId: O001-09
   spawnItemId: 
-  description: "\uBCF5\uB3C4\uB85C \uB098\uC624\uB2C8 \uC544\uBB34\uB3C4 \uC5C6\uB2E4. "
+  description: "\uBCF5\uB3C4\uB85C \uB098\uC624\uB2C8 \uC544\uBB34\uB3C4 \uC5C6\uB2E4.
+    \uC885\uC18C\uB9AC\uB3C4, \uBC1C\uC18C\uB9AC\uB3C4 \uC5C6\uB2E4. \uB108\uBB34
+    \uC870\uC6A9\uD558\uB2E4."
   choices:
   - label: "\uAD50\uC2E4\uB85C \uAC00\uBCF4\uC790"
     requiredItem: 
@@ -25,7 +27,7 @@ MonoBehaviour:
     fatigue: 0
     bagUpgrade: 0
     opensInventory: 0
-    newState: Empty
+    newState: 
     nextEventId: O001-10
     correct: 0
     rewardItem: 

@@ -22,6 +22,7 @@ MonoBehaviour:
   cashPrice: -1
   canBeDamaged: 0
   specialEvent: 
-  resourcePath: 
+  resourcePath: '"D:\Unity\MySeoul\Assets\UI\item\12pparu.png"'
   resourceName: 
+  icon: {fileID: 21300000, guid: f4c55ff38eb8d5f42bd8ddfba714e670, type: 3}
   shape: 010000000000010000000000000000000000000000000000000000000000

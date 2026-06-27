@@ -61,6 +61,17 @@ namespace SeoulLast
                 crt.sizeDelta = new Vector2(cell - gap * 2, cell - gap * 2);
                 crt.anchoredPosition = new Vector2(c.x * cell + gap, -(c.y * cell + gap));
             }
+            // 아이템 이미지가 있으면 모양 박스 위에 스프라이트 표시
+            if (Model.Def.Icon != null)
+            {
+                var ico = UIFactory.Img(transform, "icon", Color.white);
+                ico.sprite = Model.Def.Icon; ico.type = Image.Type.Simple; ico.preserveAspect = true;
+                ico.raycastTarget = false;
+                var irt = ico.rectTransform;
+                irt.anchorMin = new Vector2(0, 1); irt.anchorMax = new Vector2(0, 1); irt.pivot = new Vector2(0, 1);
+                irt.sizeDelta = new Vector2(Model.Def.Width * cell, Model.Def.Height * cell);
+                irt.anchoredPosition = Vector2.zero;
+            }
             // 이름 + 상태(회복류 / 내구도)
             string sub = Model.Def.IsRecovery ? "" : "  x" + Model.Uses;
             var label = UIFactory.Label(transform, "n", Model.Def.Name + sub, 20, TextAnchor.MiddleCenter, new Color(0.12f, 0.12f, 0.12f));

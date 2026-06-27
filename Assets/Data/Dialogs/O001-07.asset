@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.DialogData
   dialogId: O001-07
   spawnItemId: TOO001
-  description: "\uADF8\uB7F0\uB370 \uC774\uAC74 \uC5B4\uCA4C\uC9C0?? "
+  description: "\uADF8\uB7F0\uB370 \uC774\uAC74 \uC5B4\uCA4C\uC9C0??"
   choices:
   - label: "\uC99D\uAC70\uC778\uBA78! \uC8FC\uBA38\uB2C8\uC5D0 \uB123\uC790."
     requiredItem: 
@@ -25,7 +25,7 @@ MonoBehaviour:
     fatigue: 0
     bagUpgrade: 0
     opensInventory: 1
-    newState: Empty
+    newState: 
     nextEventId: O001-09
     correct: 0
     rewardItem: 

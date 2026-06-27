@@ -15,7 +15,7 @@ MonoBehaviour:
   dialogId: O001-05
   spawnItemId: 
   description: "\uB4DC\uB77C\uC774\uBC84\uB85C \uD2C8\uC0AC\uC774\uB97C \uC464\uC2DC\uB2C8,
-    \uCCA0\uCEE5, \uD558\uBA74\uC11C \uC5F4\uB9AC\uB294 \uC18C\uB9AC\uAC00\uB0AC\uB2E4. "
+    \uCCA0\uCEE5, \uD558\uBA74\uC11C \uC5F4\uB9AC\uB294 \uC18C\uB9AC\uAC00\uB0AC\uB2E4."
   choices:
   - label: "\uC88B\uC558\uC5B4! \uBC16\uC73C\uB85C \uB098\uAC00\uC790"
     requiredItem: 
@@ -26,7 +26,7 @@ MonoBehaviour:
     fatigue: 0
     bagUpgrade: 0
     opensInventory: 0
-    newState: Empty
+    newState: 
     nextEventId: O001-08
     correct: 0
     rewardItem: 

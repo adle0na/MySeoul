@@ -27,7 +27,7 @@ MonoBehaviour:
     pain: 0
     fatigue: 0
     bagUpgrade: 0
-    opensInventory: 0
+    opensInventory: 1
     newState: 
     nextEventId: Done
     correct: 0

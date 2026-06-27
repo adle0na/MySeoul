@@ -3,6 +3,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.UI;
+using Spine.Unity;
 using SeoulLast;
 
 namespace SeoulLast.EditorTools
@@ -49,9 +50,64 @@ namespace SeoulLast.EditorTools
             foreach (var t in canvas.GetComponentsInChildren<Text>(true)) { if (font != null) t.font = font; texts++; }
             foreach (var img in canvas.GetComponentsInChildren<Image>(true)) { if (sprite != null) { img.sprite = sprite; img.type = Image.Type.Sliced; } imgs++; }
 
+            // Explore 화면 리소스 할당 (Assets/UI, Assets/art)
+            AssignRaw(canvas, "EventPanel/Bg", "Assets/art/Backgrond/Bg_ex1.jpg");
+            AssignSprite(canvas, "EventPanel/Char", "Assets/art/Character/character_example.png");
+            AssignSprite(canvas, "EventPanel/Item", "Assets/UI/1_1item.png");
+            string[] icons = {
+                "Assets/UI/icon/sangtea-isan_h.png", "Assets/UI/icon/sangtea-isan_w.png",
+                "Assets/UI/icon/sangtea-isan_hs.png", "Assets/UI/icon/sangtea-isan-cra.png" };
+            for (int i = 0; i < 4; i++) AssignSprite(canvas, "EventPanel/Status" + i, icons[i]);
+            try { SetupSpineCharacter(canvas); } catch (System.Exception e) { Debug.LogWarning("[FlowCanvasBuilder] Spine 캐릭터 설정 실패(플레이스홀더 유지): " + e.Message); }
+
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
             EditorSceneManager.SaveOpenScenes();
             return new[] { texts, imgs };
+        }
+
+        const string SpineDataPath = "Assets/art/Character/walk/Character_Yeger_walk_SkeletonData.asset";
+
+        // Spine 걷기 캐릭터를 EventPanel에 베이크 (walk 루프). 플레이스홀더 Char 숨김.
+        static void SetupSpineCharacter(GameObject canvas)
+        {
+            var ep = canvas.transform.Find("EventPanel"); if (ep == null) return;
+            var old = ep.Find("CharSpine"); if (old != null) Object.DestroyImmediate(old.gameObject);
+
+            var data = AssetDatabase.LoadAssetAtPath<SkeletonDataAsset>(SpineDataPath);
+            if (data == null) { Debug.LogWarning("[FlowCanvasBuilder] SkeletonDataAsset 없음: " + SpineDataPath); return; }
+
+            var sg = SkeletonGraphic.NewSkeletonGraphicGameObject(data, ep, null);
+            sg.gameObject.name = "CharSpine";
+            sg.startingAnimation = "walk";
+            sg.startingLoop = true;
+            sg.Initialize(true);
+
+            var rt = sg.rectTransform;
+            rt.anchorMin = new Vector2(0, 1); rt.anchorMax = new Vector2(0, 1); rt.pivot = new Vector2(0.5f, 0f);
+            rt.localScale = Vector3.one * 0.6f;
+            rt.anchoredPosition = new Vector2(300, -1090);   // 캐릭터 자리(에디터에서 미세조정)
+
+            var ch = ep.Find("Char"); if (ch != null) ch.gameObject.SetActive(false);
+        }
+
+        static void AssignRaw(GameObject canvas, string path, string asset)
+        {
+            var t = canvas.transform.Find(path); if (t == null) return;
+            var raw = t.GetComponent<RawImage>(); if (raw == null) return;
+            var imp = AssetImporter.GetAtPath(asset) as TextureImporter;
+            if (imp != null && imp.wrapMode != TextureWrapMode.Repeat) { imp.wrapMode = TextureWrapMode.Repeat; imp.SaveAndReimport(); }
+            var tex = AssetDatabase.LoadAssetAtPath<Texture2D>(asset);
+            if (tex != null) { raw.texture = tex; raw.color = Color.white; }
+        }
+
+        static void AssignSprite(GameObject canvas, string path, string asset)
+        {
+            var t = canvas.transform.Find(path); if (t == null) return;
+            var img = t.GetComponent<Image>(); if (img == null) return;
+            var imp = AssetImporter.GetAtPath(asset) as TextureImporter;
+            if (imp != null && imp.textureType != TextureImporterType.Sprite) { imp.textureType = TextureImporterType.Sprite; imp.SaveAndReimport(); }
+            var sp = AssetDatabase.LoadAssetAtPath<Sprite>(asset);
+            if (sp != null) { img.sprite = sp; img.type = Image.Type.Simple; img.color = Color.white; }
         }
     }
 }

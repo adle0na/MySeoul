@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -25,6 +26,7 @@ namespace SeoulLast
         static readonly string[] StatNormal = { "허기", "수분", "건강", "기운" };
         static readonly string[] StatCaution = { "배고픔", "목마름", "아픔", "피곤함" };
         static readonly string[] StatDanger = { "굶주림", "갈증", "질병", "비몽사몽" };
+        static readonly string[] StatRail = { "배고픔", "갈증", "아픔", "정신병" };  // 좌측 상태레일 표시명
         static readonly int[] DailyInc = { 12, 14, 4, 10 };
         readonly int[] status = new int[4];
 
@@ -62,6 +64,19 @@ namespace SeoulLast
         Button useBtn; Text useBtnLabel; PlacedItem selectedItem;
         System.Action bagOnDone;        // 가방 정비 완료 시 동작(맥락별)
 
+        // ---- Explore 화면 (사이드스크롤 연출) ----
+        Text dayText;                   // 상단바 "DAY n · 장소"
+        Image[] statusIcon = new Image[4];   // 좌측 상태레일 아이콘
+        Text[] statusLabel = new Text[4];    // 상태 이름
+        RawImage bgRaw;                 // 인피니티 스크롤 배경
+        Image charImg;                  // 메인 캐릭터(스프라이트, 추후 Spine 교체)
+        Image itemImg;                  // 다가오는 아이템
+        RectTransform eventCard;        // 하단 이벤트 카드
+        Button bagToggleBtn;            // 하단 가방 토글
+        bool walking;                   // 걷는 중(배경 스크롤)
+        float itemMeetX;                // 아이템이 멈출 x(캐릭터 위치)
+        const float SCROLL_SPEED = 0.18f;
+
         void Awake()
         {
             // 6x6 그리드, 중앙 2x2 활성(Stage 1). 나머지 칸은 딤(배치 불가).
@@ -91,14 +106,25 @@ namespace SeoulLast
             gameOverPanel = c.Find("GameOverPanel").gameObject;
 
             bagBody = c.Find("BagPanel/Info").GetComponent<Text>();
-            eventTitle = c.Find("EventPanel/T").GetComponent<Text>();
-            eventBody = c.Find("EventPanel/Box/B").GetComponent<Text>();
+            eventTitle = c.Find("EventPanel/Card/T").GetComponent<Text>();
+            eventBody = c.Find("EventPanel/Card/B").GetComponent<Text>();
             endingBody = c.Find("EndingPanel/Box/B").GetComponent<Text>();
             goBody = c.Find("GameOverPanel/Box/B").GetComponent<Text>();
             restBody = c.Find("RestPanel/Box/B").GetComponent<Text>();
             bagBtnLabel = c.Find("BagPanel/DayStart/Label").GetComponent<Text>();
 
-            choiceArea = c.Find("EventPanel/ChoiceArea").GetComponent<RectTransform>();
+            choiceArea = c.Find("EventPanel/Card/ChoiceArea").GetComponent<RectTransform>();
+            eventCard = c.Find("EventPanel/Card").GetComponent<RectTransform>();
+            dayText = c.Find("EventPanel/DayText").GetComponent<Text>();
+            bgRaw = c.Find("EventPanel/Bg").GetComponent<RawImage>();
+            charImg = c.Find("EventPanel/Char").GetComponent<Image>();
+            itemImg = c.Find("EventPanel/Item").GetComponent<Image>();
+            for (int i = 0; i < 4; i++)
+            {
+                statusIcon[i] = c.Find("EventPanel/Status" + i).GetComponent<Image>();
+                statusLabel[i] = c.Find("EventPanel/Status" + i + "/L").GetComponent<Text>();
+            }
+            bagToggleBtn = c.Find("EventPanel/BagToggle").GetComponent<Button>();
             mapArea = c.Find("MapPanel/MapArea").GetComponent<RectTransform>();
             gridRect = c.Find("BagPanel/Grid").GetComponent<RectTransform>();
             slotsRect = c.Find("BagPanel/Slots").GetComponent<RectTransform>();
@@ -112,6 +138,7 @@ namespace SeoulLast
             Wire(c, "CutscenePanel/CutNext", BeginOnboarding);
             Wire(c, "BagPanel/DayStart", BagDone);
             Wire(c, "BagPanel/UseBtn", OnUseBtn);
+            Wire(c, "EventPanel/BagToggle", OnBagToggle);
             Wire(c, "RestPanel/RestBag", () => ShowBag(ShowRest, "휴식으로 →"));
             Wire(c, "RestPanel/RestMap", ShowMap);
             Wire(c, "EndingPanel/EndingPanelBtn", Restart);
@@ -343,10 +370,7 @@ namespace SeoulLast
         void RenderDialog()
         {
             ClearChoices();
-            eventTitle.text = stageNo == 0
-                ? "온보딩"
-                : $"스테이지 {stageNo}" + (string.IsNullOrEmpty(stageRegion) ? "" : " · " + stageRegion)
-                  + $" · {Mathf.Min(eventsThisStage + 1, STAGE_LEN)}/{STAGE_LEN}";
+            eventTitle.text = curDialog != null && !string.IsNullOrEmpty(curDialog.spawnItemId) ? "무언가를 발견했다!" : "";
             string body = string.IsNullOrWhiteSpace(curDialog.description)
                 ? $"<color=#888888>(임시) {curEvent.eventType}{(string.IsNullOrEmpty(curEvent.region) ? "" : " · " + curEvent.region)} — 대화 준비 중</color>"
                 : curDialog.description;
@@ -372,6 +396,92 @@ namespace SeoulLast
                 AddConfirm(() => { if (a != null) OnDialogBranch(a); else EndEvent(); });
             }
             Only(eventPanel);
+            UpdateTopBar();
+            UpdateStatusRail();
+            StartApproach();   // 걷기 + 아이템 접근 후 카드 표시
+        }
+
+        // ---------- Explore 연출 ----------
+        void Update()
+        {
+            if (walking && bgRaw != null)
+            {
+                var r = bgRaw.uvRect; r.x += SCROLL_SPEED * Time.deltaTime; bgRaw.uvRect = r;
+            }
+        }
+
+        void StartApproach()
+        {
+            walking = true;
+            if (eventCard != null) eventCard.gameObject.SetActive(false);
+            if (itemImg != null)
+            {
+                // 등장 물건 이미지 반영 (없으면 기본 스프라이트 유지)
+                var d = curDialog != null ? FindItemData(curDialog.spawnItemId) : null;
+                if (d != null && d.icon != null) { itemImg.sprite = d.icon; itemImg.color = Color.white; }
+                itemImg.gameObject.SetActive(true);
+                itemImg.rectTransform.anchoredPosition = new Vector2(W - 240, -840);
+            }
+            StopAllCoroutines();
+            StartCoroutine(ApproachCo());
+        }
+
+        IEnumerator ApproachCo()
+        {
+            float t = 0, dur = 0.8f, startX = W - 240, endX = 470;
+            var rt = itemImg != null ? itemImg.rectTransform : null;
+            while (t < dur)
+            {
+                t += Time.deltaTime;
+                if (rt != null) rt.anchoredPosition = new Vector2(Mathf.Lerp(startX, endX, t / dur), -840);
+                yield return null;
+            }
+            walking = false;
+            if (eventCard != null) eventCard.gameObject.SetActive(true);
+        }
+
+        IEnumerator FlyItemToBag(System.Action done)
+        {
+            var rt = itemImg != null ? itemImg.rectTransform : null;
+            Vector2 start = rt != null ? rt.anchoredPosition : Vector2.zero;
+            Vector2 end = new Vector2((W - 170) / 2f, -1700);
+            float t = 0, dur = 0.4f;
+            while (t < dur)
+            {
+                t += Time.deltaTime;
+                if (rt != null) rt.anchoredPosition = Vector2.Lerp(start, end, t / dur);
+                yield return null;
+            }
+            if (rt != null) rt.gameObject.SetActive(false);
+            if (done != null) done();
+        }
+
+        void UpdateTopBar()
+        {
+            if (dayText == null) return;
+            string place = stageNo == 0 ? "체육창고" : (string.IsNullOrEmpty(stageRegion) ? "어딘가" : stageRegion);
+            string d = stageNo == 0 ? "온보딩" : "DAY " + stageNo;
+            dayText.text = $"{d}     {place}     ({Mathf.Min(eventsThisStage + 1, STAGE_LEN)}/{STAGE_LEN})";
+        }
+
+        void UpdateStatusRail()
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                if (statusIcon[i] == null) continue;
+                int lv = Level(status[i]);
+                statusIcon[i].gameObject.SetActive(lv > 0);
+                if (lv > 0)
+                {
+                    statusIcon[i].color = lv == 2 ? new Color(0.88f, 0.26f, 0.22f) : new Color(0.92f, 0.74f, 0.22f);
+                    if (statusLabel[i] != null) statusLabel[i].text = StatRail[i] + (lv == 2 ? " !!" : " !");
+                }
+            }
+        }
+
+        void OnBagToggle()
+        {
+            ShowBag(() => { Only(eventPanel); if (eventCard != null) eventCard.gameObject.SetActive(true); }, "닫기 ▼");
         }
 
         // NextEventId == "random": 온보딩 제외, (현재 지역의 특정지역 + 일반) 중 랜덤
@@ -401,9 +511,10 @@ namespace SeoulLast
             string next = c.nextEventId;   // 다음 대화 id ("Done"/빈값 = 이벤트 종료)
             if (c.opensInventory)
             {
-                // 현재 대화의 등장 물건(DialogItemId) 지급 → 트레이(드래그로 그리드에 배치)
-                GrantObjectItem(curDialog != null ? curDialog.spawnItemId : "");
-                ShowBag(() => StartDialog(next), "계속 →");
+                // 아이템이 하단 가방으로 날아간 뒤 지급 → 가방 정비
+                string spawn = curDialog != null ? curDialog.spawnItemId : "";
+                if (eventCard != null) eventCard.gameObject.SetActive(false);
+                StartCoroutine(FlyItemToBag(() => { GrantObjectItem(spawn); ShowBag(() => StartDialog(next), "계속 →"); }));
             }
             else
                 StartDialog(next);
@@ -439,6 +550,7 @@ namespace SeoulLast
             var def = new ItemDef(d.itemId, string.IsNullOrEmpty(d.itemName) ? d.itemId : d.itemName,
                 new Color(0.62f, 0.6f, 0.5f), cells);
             def.MaxUses = d.durability > 0 ? d.durability : 1;
+            def.Icon = d.icon;
 
             // 회복 매핑 (이름/타입 기반) — 지급된 자원/회복 아이템을 가방에서 사용 가능
             string n = d.itemName ?? "";
@@ -540,8 +652,8 @@ namespace SeoulLast
             return list[Mathf.Min(endStreak[e], list.Count - 1)];
         }
 
-        // 상태 임계치(Level과 일치): 주의 40, 위험 70
-        const int T_CAUTION = 40, T_DANGER = 70;
+        // 상태 임계치(Level과 일치): 주의 30, 위험 60
+        const int T_CAUTION = 30, T_DANGER = 60;
 
         // 시트 EventBranchXNewState 적용. 두 형식 지원 (구분 ; 또는 ,):
         //  (1) 컨디션 부여  예) "배고픔" → 해당 스탯을 그 컨디션 임계치까지만 악화.
@@ -644,7 +756,7 @@ namespace SeoulLast
 
         // ---------- 상태/텍스트 ----------
         static int Clamp(int v) => Mathf.Clamp(v, 0, 100);
-        static int Level(int v) => v >= 70 ? 2 : v >= 40 ? 1 : 0;
+        static int Level(int v) => v >= 60 ? 2 : v >= 30 ? 1 : 0;   // 위험 60 / 주의 30
         string StatusSummary()
         {
             var bad = new List<string>();
@@ -830,15 +942,55 @@ namespace SeoulLast
         GameObject BuildEventPanel(Transform root)
         {
             var p = UIFactory.Panel(root, "EventPanel", new Color(0.10f, 0.11f, 0.14f)); UIFactory.Fill(p.rectTransform);
-            eventTitle = UIFactory.Label(p.transform, "T", "", 38, TextAnchor.UpperCenter, new Color(0.95f, 0.85f, 0.5f));
-            UIFactory.SetRect(eventTitle.rectTransform, 60, 150, W - 120, 70);
-            var box = UIFactory.Panel(p.transform, "Box", new Color(0.16f, 0.17f, 0.21f));
-            UIFactory.SetRect(box.rectTransform, 90, 250, W - 180, 420);
-            eventBody = UIFactory.Label(box.transform, "B", "", 31, TextAnchor.UpperLeft, new Color(0.93f, 0.94f, 0.97f));
-            UIFactory.SetRect(eventBody.rectTransform, 36, 30, W - 252, 360);
+
+            // 배경(인피니티 스크롤) — 씬 영역
+            var bgGO = new GameObject("Bg", typeof(RectTransform), typeof(RawImage));
+            bgGO.GetComponent<RectTransform>().SetParent(p.transform, false);
+            bgRaw = bgGO.GetComponent<RawImage>();
+            UIFactory.SetRect(bgGO.GetComponent<RectTransform>(), 0, 110, W, 1010);
+            bgRaw.color = new Color(0.55f, 0.6f, 0.66f); bgRaw.raycastTarget = false;
+
+            // 캐릭터(좌측) / 아이템(우측 접근)
+            charImg = UIFactory.Img(p.transform, "Char", Color.white);
+            UIFactory.SetRect(charImg.rectTransform, 90, 720, 340, 400); charImg.raycastTarget = false;
+            itemImg = UIFactory.Img(p.transform, "Item", Color.white);
+            UIFactory.SetRect(itemImg.rectTransform, W - 240, 840, 170, 170); itemImg.raycastTarget = false;
+            itemImg.gameObject.SetActive(false);
+
+            // 상단바 (DAY · 장소)
+            var bar = UIFactory.Img(p.transform, "TopBar", new Color(0.10f, 0.09f, 0.07f, 0.9f)); bar.raycastTarget = false;
+            UIFactory.SetRect(bar.rectTransform, 0, 0, W, 110);
+            dayText = UIFactory.Label(p.transform, "DayText", "DAY 1", 36, TextAnchor.MiddleLeft, new Color(0.96f, 0.9f, 0.78f));
+            UIFactory.SetRect(dayText.rectTransform, 44, 18, W - 88, 74); dayText.raycastTarget = false;
+
+            // 좌측 상태 레일 (평소 숨김)
+            for (int i = 0; i < 4; i++)
+            {
+                var ic = UIFactory.Img(p.transform, "Status" + i, new Color(1, 1, 1, 0.95f)); ic.raycastTarget = false;
+                UIFactory.SetRect(ic.rectTransform, 18, 150 + i * 116, 96, 96);
+                statusIcon[i] = ic;
+                var l = UIFactory.Label(ic.transform, "L", StatRail[i], 18, TextAnchor.LowerCenter, Color.white);
+                UIFactory.Fill(l.rectTransform); l.raycastTarget = false;
+                statusLabel[i] = l;
+                ic.gameObject.SetActive(false);
+            }
+
+            // 이벤트 카드 (하단)
+            var card = UIFactory.Panel(p.transform, "Card", new Color(0.10f, 0.09f, 0.08f, 0.93f));
+            eventCard = card.rectTransform;
+            UIFactory.SetRect(eventCard, 50, 1130, W - 100, 560);
+            eventTitle = UIFactory.Label(eventCard, "T", "", 32, TextAnchor.UpperLeft, new Color(0.95f, 0.85f, 0.5f));
+            UIFactory.SetRect(eventTitle.rectTransform, 36, 22, W - 180, 56);
+            eventBody = UIFactory.Label(eventCard, "B", "", 30, TextAnchor.UpperLeft, new Color(0.93f, 0.94f, 0.97f));
+            UIFactory.SetRect(eventBody.rectTransform, 36, 84, W - 180, 150);
             var caGO = new GameObject("ChoiceArea", typeof(RectTransform));
-            choiceArea = caGO.GetComponent<RectTransform>(); choiceArea.SetParent(p.transform, false);
-            UIFactory.SetRect(choiceArea, 80, 710, W - 160, 600);
+            choiceArea = caGO.GetComponent<RectTransform>(); choiceArea.SetParent(eventCard, false);
+            UIFactory.SetRect(choiceArea, 36, 244, W - 180, 300);
+
+            // 하단 가방 토글
+            Text bt; bagToggleBtn = UIFactory.Button(p.transform, "BagToggle", "가방 ▲", new Color(0.5f, 0.4f, 0.25f), OnBagToggle, out bt);
+            UIFactory.SetRect(bagToggleBtn.GetComponent<RectTransform>(), (W - 300) / 2f, 1700, 300, 110);
+
             return p.gameObject;
         }
 

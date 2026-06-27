@@ -14,8 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.DialogData
   dialogId: O001-11
   spawnItemId: 
-  description: "\uC2DD\uB7C9\uC740 \uB354\uBE14\uD074\uB9AD\uC744 \uD1B5\uD574 \uBC14\uB85C
-    \uC12D\uCDE8\uD560\uC218\uC788\uC2B5\uB2C8\uB2E4. "
+  description: "\uD55C\uCC38\uC744 \uC7A4\uB354\uB2C8 \uBC30\uC5D0\uC11C \uAF2C\uB974\uB975
+    \uC18C\uB9AC\uAC00 \uB09C\uB2E4. \uD654\uBA74 \uC704\uCABD \uC0C1\uD0DC \uB9C9\uB300\uB97C
+    \uBCF4\uC790 \u2014 \uBC30\uACE0\uD514\xB7\uBAA9\uB9C8\uB984\xB7\uCCB4\uB825\uC774\uB2E4.
+    \uC5B4\uB290 \uD558\uB098\uB77C\uB3C4 0\uC774 \uB418\uBA74 \uB05D\uC7A5\uC774\uB2E4."
   choices:
   - label: 
     requiredItem: 
@@ -26,8 +28,8 @@ MonoBehaviour:
     fatigue: 0
     bagUpgrade: 0
     opensInventory: 0
-    newState: Empty
-    nextEventId: O001-13
+    newState: 
+    nextEventId: O001-12
     correct: 0
     rewardItem: 
     loseRandomItem: 0
