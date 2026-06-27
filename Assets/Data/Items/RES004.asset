@@ -13,16 +13,17 @@ MonoBehaviour:
   m_Name: RES004
   m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.ItemData
   itemId: RES004
-  itemName: 
+  itemName: "\uBB3C\uBCD1"
   itemType: "\uC790\uC6D0"
   durability: -1
-  description: "\uAC01\uC885 \uC81C\uC791\uC5D0 \uC0AC\uC6A9\uB418\uB294 \uAE08\uC18D
-    \uBD80\uD488. \uC5B4\uB514\uC11C\uB4E0 \uAD6C\uD560 \uC218 \uC788\uB2E4."
-  sellGold: 5
-  buyGold: 5
+  description: "\uB204\uAD70\uAC00 \uC4F0\uB358 \uBB3C\uBCD1. \uBB3C\uC774 \uAF64
+    \uB0A8\uC544 \uC788\uB2E4."
+  sellGold: 0
+  buyGold: 0
   cashPrice: -1
   canBeDamaged: 0
   specialEvent: 
   resourcePath: 
   resourceName: 
+  icon: {fileID: 0}
   shape: 010000000000000000000000000000000000000000000000000000000000

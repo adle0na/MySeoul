@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 14d984cadf659d5499055edb8eec3fd8, type: 3}
+  m_Name: Loc017
+  m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.LocationData
+  locationId: Loc017
+  locationName: "\uAD50\uBB34\uC2E4"
+  isLock: 1
+  visitCount: 0
+  description: "\uAD50\uBB34\uC2E4. \uAD73\uAC8C \uC7A0\uACA8 \uC788\uB2E4. \uC120\uC0DD\uB2D8\uB4E4\uC758
+    \uC790\uB9AC\uB294 \uADF8\uB300\uB85C \uBE44\uC5B4 \uC788\uB2E4."

@@ -14,12 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.DialogData
   dialogId: S003-01
   spawnItemId: 
-  description: "1-2 \uAD50\uC2E4. \uCE60\uD310\uC5D0 \uBD84\uD544\uB85C \uD654\uC0B4\uD45C
-    \uD558\uB098\uAC00 \uD06C\uAC8C \uADF8\uB824\uC838 \uC788\uB2E4. \uBCF5\uB3C4
-    \uC548\uCABD \u2014 \uACFC\uD559\uC2E4 \uBC29\uD5A5\uC744 \uAC00\uB9AC\uD0A4\uB294
-    \uAC83 \uAC19\uB2E4. \uB204\uAC00, \uC65C \uB0A8\uACBC\uC744\uAE4C."
+  description: "1-3\uBC18. \uBC14\uB2E5\uC5D0 \uAE68\uC9C4 \uC720\uB9AC\uAC00 \uD769\uC5B4\uC838
+    \uC788\uB2E4. \uAE09\uD558\uAC8C \uB5A0\uB09C \uD754\uC801\uC774\uB2E4."
   choices:
-  - label: 
+  - label: "\uC870\uC2EC\uD788 \uC548\uCABD\uC744 \uC0B4\uD540\uB2E4"
     requiredItem: 
     resultText: 
     hunger: 0
@@ -30,6 +28,20 @@ MonoBehaviour:
     opensInventory: 0
     newState: 
     nextEventId: S003-02
+    correct: 0
+    rewardItem: 
+    loseRandomItem: 0
+  - label: "\uB300\uCDA9 \uD6D1\uACE0 \uBE68\uB9AC \uB098\uC628\uB2E4"
+    requiredItem: 
+    resultText: 
+    hunger: 0
+    thirst: 0
+    pain: 0
+    fatigue: 0
+    bagUpgrade: 0
+    opensInventory: 0
+    newState: 
+    nextEventId: S003-03
     correct: 0
     rewardItem: 
     loseRandomItem: 0

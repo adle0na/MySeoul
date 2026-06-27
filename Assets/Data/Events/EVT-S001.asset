@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6aa2a7afbc13e824d869983204d074bc, type: 3}
   m_Name: EVT-S001
   m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.EventData
-  minLevel: 0
-  startDialogId: 
+  minLevel: 1
+  startDialogId: S001-01
   dayMin: 1
   dayMax: 99
   endingId: 
@@ -23,11 +23,11 @@ MonoBehaviour:
   description: 
   eventId: EVT-S001
   eventName: EVT-S001
-  eventType: 
+  eventType: "\uC2DC\uB098\uB9AC\uC624"
   eventCategory: 
   probability: 0
   hasBranch: 
-  region: 
+  region: Loc001
   regionEntryCondition: 
   regionSpecialEffect: 
   relatedItemId: 
@@ -46,4 +46,4 @@ MonoBehaviour:
   statusDuration: 0
   statusModifier: 
   difficulty: 
-  note: 
+  note: "1-1\uBC18 (1\uB9C9)"

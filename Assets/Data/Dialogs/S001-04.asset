@@ -14,10 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.DialogData
   dialogId: S001-04
   spawnItemId: 
-  description: "\uC804\uC790\uCE60\uD310\uB3C4, \uCEF4\uD4E8\uD130\uB3C4, CCTV\uB3C4
-    \uC804\uBD80 \uBD80\uC11C\uC838 \uC788\uB2E4. \uB204\uAC00 \uC77C\uBD80\uB7EC
-    \uAE6C \uAC83 \uAC19\uB2E4. \uBCBD\uC5D0\uB294 \uAC80\uC740 \uAE00\uC528. \"\uC804\uC790\uAE30\uAE30\uB97C
-    \uBBFF\uC9C0 \uB9C8.\" \"\uC808\uB300 \uB4E4\uD0A4\uC9C0 \uB9C8.\""
+  description: "\uCC45\uC0C1 \uC704\uC5D4 \uCE5C\uAD6C\uB4E4\uACFC \uCC0D\uC740 \uC0AC\uC9C4\uC774
+    \uADF8\uB300\uB85C \uB193\uC5EC \uC788\uB2E4. \uB354 \uB458\uB7EC\uBD10\uB3C4
+    \uC0AC\uB78C\uC740 \uC5C6\uB2E4."
   choices:
   - label: 
     requiredItem: 
@@ -29,7 +28,7 @@ MonoBehaviour:
     bagUpgrade: 0
     opensInventory: 0
     newState: 
-    nextEventId: S001-05
+    nextEventId: Done
     correct: 0
     rewardItem: 
     loseRandomItem: 0

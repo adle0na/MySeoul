@@ -13,16 +13,17 @@ MonoBehaviour:
   m_Name: WPN003
   m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.ItemData
   itemId: WPN003
-  itemName: 
+  itemName: "\uC758\uC790 \uB2E4\uB9AC"
   itemType: "\uBB34\uAE30"
-  durability: 90
-  description: "\uC18C\uC74C\uC774 \uC5C6\uC5B4 \uC801\uC5D0\uAC8C \uB4E4\uD0A4\uC9C0
-    \uC54A\uACE0 \uC0AC\uB0E5 \uAC00\uB2A5. \uD654\uC0B4 \uC7AC\uC0AC\uC6A9 \uAC00\uB2A5."
-  sellGold: 200
-  buyGold: 200
+  durability: 3
+  description: "\uBD80\uC11C\uC9C4 \uC758\uC790\uC5D0\uC11C \uBF51\uC544\uB0B8 \uC1E0
+    \uB2E4\uB9AC. \uC9C0\uB81B\uB300\uB85C\uB3C4 \uC4F8 \uB9CC\uD558\uB2E4."
+  sellGold: 0
+  buyGold: 0
   cashPrice: -1
   canBeDamaged: 0
   specialEvent: 
   resourcePath: 
   resourceName: 
+  icon: {fileID: 0}
   shape: 010000000000000100000000000001010000000000000000000000000000

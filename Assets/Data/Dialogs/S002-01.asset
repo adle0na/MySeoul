@@ -14,12 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.DialogData
   dialogId: S002-01
   spawnItemId: 
-  description: "1-1 \uAD50\uC2E4. \uCC45\uC0C1\uB4E4\uC774 \uBB38 \uCABD\uC73C\uB85C
-    \uC794\uB729 \uBC00\uB824 \uBC14\uB9AC\uCF00\uC774\uB4DC\uCC98\uB7FC \uC313\uC5EC
-    \uC788\uB2E4. \uB204\uAD70\uAC00 \uAE09\uD558\uAC8C \uB9C9\uACE0 \uB5A0\uB09C
-    \uC790\uB9AC."
+  description: "1-2\uBC18. \uCE60\uD310\uC5D0 \uBD84\uD544\uB85C \uD070 \uD654\uC0B4\uD45C\uAC00
+    \uADF8\uB824\uC838 \uC788\uB2E4. \uBCF5\uB3C4 \uC548\uCABD, \uACFC\uD559\uC2E4
+    \uBC29\uD5A5\uC774\uB2E4. \uAD50\uD0C1 \uC544\uB798\uC5D4 \uC790\uBB3C\uC1E0\uB85C
+    \uC7A0\uAE34 \uCCA0\uC81C \uC0C1\uC790\uAC00 \uBCF4\uC778\uB2E4."
   choices:
-  - label: 
+  - label: "\uB9E8\uC190\uC73C\uB85C \uC0C1\uC790\uB97C \uC5F4\uC5B4\uBCF8\uB2E4"
     requiredItem: 
     resultText: 
     hunger: 0
@@ -30,6 +30,34 @@ MonoBehaviour:
     opensInventory: 0
     newState: 
     nextEventId: S002-02
+    correct: 0
+    rewardItem: 
+    loseRandomItem: 0
+  - label: "\uBE60\uB8E8\uB85C \uC0C1\uC790\uB97C \uBD80\uC21C\uB2E4"
+    requiredItem: TOO001
+    resultText: 
+    hunger: 0
+    thirst: 0
+    pain: 0
+    fatigue: 0
+    bagUpgrade: 0
+    opensInventory: 0
+    newState: 
+    nextEventId: S002-03
+    correct: 0
+    rewardItem: 
+    loseRandomItem: 0
+  - label: "\uB4DC\uB77C\uC774\uBC84\uB85C \uC790\uBB3C\uC1E0\uB97C \uB534\uB2E4"
+    requiredItem: TOO002
+    resultText: 
+    hunger: 0
+    thirst: 0
+    pain: 0
+    fatigue: 0
+    bagUpgrade: 0
+    opensInventory: 0
+    newState: 
+    nextEventId: S002-04
     correct: 0
     rewardItem: 
     loseRandomItem: 0
