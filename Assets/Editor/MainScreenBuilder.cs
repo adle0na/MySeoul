@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
 using UnityEditor.Events;
@@ -7,6 +8,7 @@ using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using SeoulLast;
+using SeoulLast.Data;
 
 namespace SeoulLast.EditorTools
 {
@@ -16,6 +18,9 @@ namespace SeoulLast.EditorTools
     {
         static Sprite white;
         static Font font;
+        static List<Button> roomBtns;
+        static List<string> roomNames;
+        static Button departBtn;
 
         static readonly Color cBg = new Color(0.93f, 0.90f, 0.83f);
         static readonly Color cPanel = new Color(0.88f, 0.84f, 0.74f);
@@ -134,7 +139,30 @@ namespace SeoulLast.EditorTools
             Wire(navBtns[2], ms.OpenDiary);
             Wire(navBtns[3], ms.OpenShop);
 
+            // 방 선택 + 출발
+            for (int i = 0; i < roomBtns.Count; i++)
+                WireString(roomBtns[i], ms.SelectRoom, roomNames[i]);
+            Wire(departBtn, ms.Depart);
+
             backGO.SetActive(false);
+
+            // ---- GameFlow: 오브젝트 생성 + EventData 에셋 전부 연결 ----
+            var gf = Object.FindObjectOfType<GameFlow>();
+            if (gf == null) gf = new GameObject("GameFlow").AddComponent<GameFlow>();
+            var evGuids = AssetDatabase.FindAssets("t:EventData");
+            var evList = new List<EventData>();
+            foreach (var g in evGuids)
+            {
+                var ed = AssetDatabase.LoadAssetAtPath<EventData>(AssetDatabase.GUIDToAssetPath(g));
+                if (ed != null) evList.Add(ed);
+            }
+            var gso = new SerializedObject(gf);
+            var arr = gso.FindProperty("events");
+            arr.arraySize = evList.Count;
+            for (int i = 0; i < evList.Count; i++) arr.GetArrayElementAtIndex(i).objectReferenceValue = evList[i];
+            gso.ApplyModifiedProperties();
+            EditorUtility.SetDirty(gf);
+            Debug.Log("[MainScreenBuilder] GameFlow에 EventData " + evList.Count + "개 연결.");
 
             EditorUtility.SetDirty(ms);
             EditorSceneManager.MarkSceneDirty(ms.gameObject.scene);
@@ -166,14 +194,22 @@ namespace SeoulLast.EditorTools
         static GameObject BuildMap(Transform area)
         {
             var v = CenterPanel(area, "MapView", cPanel);
-            var title = Label(v.transform, "T", "지도 — 학교 (임시 도면)", 34, TextAnchor.UpperCenter, cInk); SetRect(title.rectTransform, 0, 24, 1000, 50);
-            float bw = 430, bh = 96, gap = 18, x0 = 60, y0 = 100;
+            var title = Label(v.transform, "T", "지도 — 학교 (방 선택 후 출발)", 34, TextAnchor.UpperCenter, cInk); SetRect(title.rectTransform, 0, 20, 1000, 50);
+
+            roomBtns = new List<Button>();
+            roomNames = new List<string>();
+            float bw = 430, bh = 84, gap = 16, x0 = 60, y0 = 92;
             for (int i = 0; i < Rooms.Length; i++)
             {
                 int cx = i % 2, cy = i / 2;
-                Text rl; var b = Btn(v.transform, "room_" + Rooms[i], Rooms[i], cRoom, out rl); rl.fontSize = 30;
+                Text rl; var b = Btn(v.transform, "room_" + Rooms[i], Rooms[i], cRoom, out rl); rl.fontSize = 28;
                 SetRect((RectTransform)b.transform, x0 + cx * (bw + gap), y0 + cy * (bh + gap), bw, bh);
+                roomBtns.Add(b); roomNames.Add(Rooms[i]);
             }
+
+            // 출발 버튼
+            Text dl; departBtn = Btn(v.transform, "DepartBtn", "출발", new Color(0.85f, 0.45f, 0.25f), out dl); dl.fontSize = 36;
+            SetRect((RectTransform)departBtn.transform, (1000 - 480) / 2, y0 + 5 * (bh + gap) + 12, 480, 96);
             return v;
         }
 
@@ -284,6 +320,13 @@ namespace SeoulLast.EditorTools
             for (int i = b.onClick.GetPersistentEventCount() - 1; i >= 0; i--)
                 UnityEventTools.RemovePersistentListener(b.onClick, i);
             UnityEventTools.AddPersistentListener(b.onClick, call);
+        }
+
+        static void WireString(Button b, UnityAction<string> call, string arg)
+        {
+            for (int i = b.onClick.GetPersistentEventCount() - 1; i >= 0; i--)
+                UnityEventTools.RemovePersistentListener(b.onClick, i);
+            UnityEventTools.AddStringPersistentListener(b.onClick, call, arg);
         }
 
         static Sprite EnsureWhiteSprite()

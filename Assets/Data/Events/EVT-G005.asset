@@ -15,12 +15,12 @@ MonoBehaviour:
   eventId: EVT-G005
   eventName: "\uAD70\uC6A9 \uBCF4\uAE09\uD488 \uB099\uD558"
   eventType: "\uC77C\uBC18"
-  eventCategory: "\uD0D0\uC0C9"
+  eventCategory: 
   probability: 5
-  hasBranch: "\uB2E8\uC21C"
-  region: '-'
-  regionEntryCondition: '-'
-  regionSpecialEffect: '-'
+  hasBranch: 
+  region: 
+  regionEntryCondition: 
+  regionSpecialEffect: 
   relatedItemId: '-'
   itemOwnedResult: '-'
   itemNotOwnedResult: '-'
@@ -28,10 +28,10 @@ MonoBehaviour:
     \uC790\uC6D0 \uD68D\uB4DD."
   branchBResult: "\uD0C0 \uADF8\uB8F9\uACFC \uB3D9\uC2DC \uBC1C\uACAC. \uAD50\uC804
     or \uD611\uC0C1 \uBD84\uAE30."
-  foodWaterChange: 5
-  weaponAmmoChange: 15
-  moraleChange: 20
-  medicalSupplyChange: 10
+  foodWaterChange: 0
+  weaponAmmoChange: 0
+  moraleChange: 0
+  medicalSupplyChange: 0
   statusEffect: "\uC5C6\uC74C"
   statusDuration: 0
   statusModifier: '-'
