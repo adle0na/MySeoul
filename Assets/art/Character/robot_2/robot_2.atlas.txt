@@ -1,0 +1,17 @@
+robot_2.png
+size:590,975
+filter:Linear,Linear
+pma:true
+arm_L
+bounds:338,106,246,290
+offsets:80,196,1002,1082
+arm_R
+bounds:2,41,355,334
+offsets:1,0,356,334
+rotate:90
+body
+bounds:2,398,586,575
+offsets:0,0,587,576
+fry
+bounds:338,2,228,102
+offsets:413,189,1002,1082
