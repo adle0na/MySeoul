@@ -1,131 +1,730 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using SeoulLast.Data;
 
 namespace SeoulLast
 {
-    // 전체 흐름: 스타트 → (초회)컷씬 → 메인 → 지역선택/출발 → 이벤트 연출 → 결과 → 메인(Day++) → ... → 게임오버
-    // 메인화면은 씬의 MainScreen/MainCanvas를 재사용. 나머지(스타트/컷씬/이벤트/게임오버)는 임시 더미 화면.
-    public class GameFlow : MonoBehaviour
+    // 자체 완결형 루프 게임 흐름 (재설계 2026-06-27)
+    // 스타트 → (초회)컷씬 → [일기 → 가방정비 → 날짜이벤트(선택지/도박/포기) → 결과] 반복
+    // 엔딩 A/B/C 시차 + 정답 3연속, 죽으면 리셋(컷씬 스킵).
+    public class GameFlow : MonoBehaviour, IBagHost
     {
-        [Header("이벤트 데이터 (EventData 에셋들)")]
+        [Header("이벤트 / 아이템 데이터")]
         [SerializeField] EventData[] events;
+        [SerializeField] ItemData[] items;   // 시트 아이템 (이벤트 등장 물건 지급용)
 
         const float W = 1080f, H = 1920f;
+        const int GRID_W = 6, GRID_H = 6;   // 그리드 최대 크기(6x6). 시작 활성영역은 중앙 2x2(Stage)
+        const float CELL = 148f;
 
-        MainScreen mainScreen;
-        GameObject mainCanvas;
         readonly System.Random rng = new System.Random();
 
-        // 스탯
-        int day = 1, hp = 100, food = 100, morale = 100;
-        bool firstRun = true;
+        // ---- 상태 (4종: 허기/수분/건강/기운, 0~100 높을수록 나쁨) ----
+        static readonly string[] StatNormal = { "허기", "수분", "건강", "기운" };
+        static readonly string[] StatCaution = { "배고픔", "목마름", "아픔", "피곤함" };
+        static readonly string[] StatDanger = { "굶주림", "갈증", "질병", "비몽사몽" };
+        static readonly int[] DailyInc = { 12, 14, 4, 10 };
+        readonly int[] status = new int[4];
 
-        // 더미 화면
-        GameObject startPanel, cutscenePanel, eventPanel, gameOverPanel;
-        Text eventTitle, eventBody, goBody;
+        int day = 1;
+        bool cutsceneSeen = false;
+        string lastResult = "";
+
+        // ---- 스테이지 진행 ----
+        const int STAGE_LEN = 5;        // 1스테이지 = 5 이벤트
+        int stageNo = 0;                // 0 = 온보딩, 1+ = 실전 스테이지
+        int eventsThisStage = 0;        // 이번 스테이지에서 진행한 이벤트 수(실전만 카운트)
+        string stageRegion = "";        // 현재 스테이지 지역(지도에서 선택)
+
+        // ---- 인벤토리 (그리드 가방 only, 창고 없음) ----
+        // bag = 그리드에 배치된 것(= 실제 보유). tray = 이번 정비에서 아직 안 넣은 획득품(미배치).
+        readonly BagModel bag = new BagModel();
+        readonly List<PlacedItem> tray = new List<PlacedItem>();
+
+        // ---- 엔딩 A/B/C ----
+        static readonly string[] EndIds = { "A", "B", "C" };
+        static readonly int[] EndStartDay = { 3, 5, 7 };
+        readonly bool[] endVoided = new bool[3];
+        readonly int[] endStreak = new int[3];
+        int activeEnding = -1; // 현재 진행 중인 엔딩 인덱스(-1=없음)
+
+        EventData curEvent;
+        string forcedNextId = ""; // 시트 NextEventIdByX로 지정된 다음 이벤트(그래프 이동)
+
+        // ---- UI ----
+        GameObject startPanel, cutscenePanel, bagPanel, eventPanel, endingPanel, gameOverPanel, restPanel, mapPanel;
+        Text bagBody, eventTitle, eventBody, endingBody, goBody, restBody, bagBtnLabel;
+        RectTransform choiceArea, mapArea;
+        RectTransform gridRect, slotsRect, trayRect, trashZone, dragLayer, useListRect;
+        System.Action bagOnDone;        // 가방 정비 완료 시 동작(맥락별)
 
         void Awake()
         {
-            mainScreen = FindObjectOfType<MainScreen>();
-            mainCanvas = GameObject.Find("MainCanvas");
-            BuildFlowUI();
-            if (mainCanvas) mainCanvas.SetActive(false);
+            // 6x6 그리드, 중앙 2x2 활성(Stage 1). 나머지 칸은 딤(배치 불가).
+            bag.Width = GRID_W; bag.Height = GRID_H; bag.FullGrid = false; bag.Stage = 1;
+            // 씬에 미리 배치된 FlowCanvas가 있으면 그걸 바인딩(UI 개발자 작업물), 없으면 코드로 생성(폴백)
+            var existing = GameObject.Find("FlowCanvas");
+            if (existing != null && existing.transform.Find("StartPanel") != null)
+                BindUI(existing.transform);
+            else
+            {
+                if (existing != null) Destroy(existing);
+                BuildUI();
+            }
+            HideAll();
         }
 
-        void Start()
+        // 씬에 배치된 FlowCanvas의 오브젝트를 이름으로 찾아 참조 연결 + 버튼 동작 와이어링
+        void BindUI(Transform c)
         {
-            if (mainScreen != null) mainScreen.DepartRequested += OnDepart;
-            ShowStart();
+            startPanel = c.Find("StartPanel").gameObject;
+            cutscenePanel = c.Find("CutscenePanel").gameObject;
+            bagPanel = c.Find("BagPanel").gameObject;
+            eventPanel = c.Find("EventPanel").gameObject;
+            restPanel = c.Find("RestPanel").gameObject;
+            mapPanel = c.Find("MapPanel").gameObject;
+            endingPanel = c.Find("EndingPanel").gameObject;
+            gameOverPanel = c.Find("GameOverPanel").gameObject;
+
+            bagBody = c.Find("BagPanel/Info").GetComponent<Text>();
+            eventTitle = c.Find("EventPanel/T").GetComponent<Text>();
+            eventBody = c.Find("EventPanel/Box/B").GetComponent<Text>();
+            endingBody = c.Find("EndingPanel/Box/B").GetComponent<Text>();
+            goBody = c.Find("GameOverPanel/Box/B").GetComponent<Text>();
+            restBody = c.Find("RestPanel/Box/B").GetComponent<Text>();
+            bagBtnLabel = c.Find("BagPanel/DayStart/Label").GetComponent<Text>();
+
+            choiceArea = c.Find("EventPanel/ChoiceArea").GetComponent<RectTransform>();
+            mapArea = c.Find("MapPanel/MapArea").GetComponent<RectTransform>();
+            gridRect = c.Find("BagPanel/Grid").GetComponent<RectTransform>();
+            slotsRect = c.Find("BagPanel/Slots").GetComponent<RectTransform>();
+            trayRect = c.Find("BagPanel/Tray").GetComponent<RectTransform>();
+            trashZone = c.Find("BagPanel/Trash").GetComponent<RectTransform>();
+            dragLayer = c.Find("BagPanel/DragLayer").GetComponent<RectTransform>();
+            useListRect = c.Find("BagPanel/UseList").GetComponent<RectTransform>();
+
+            Wire(c, "StartPanel/StartBtn", OnStartBtn);
+            Wire(c, "CutscenePanel/CutNext", BeginOnboarding);
+            Wire(c, "BagPanel/DayStart", BagDone);
+            Wire(c, "RestPanel/RestBag", () => ShowBag(ShowRest, "휴식으로 →"));
+            Wire(c, "RestPanel/RestMap", ShowMap);
+            Wire(c, "EndingPanel/EndingPanelBtn", Restart);
+            Wire(c, "GameOverPanel/GameOverPanelBtn", Restart);
+        }
+
+        void Wire(Transform root, string path, UnityEngine.Events.UnityAction action)
+        {
+            var t = root.Find(path);
+            if (t == null) { Debug.LogWarning($"[GameFlow] 버튼 경로 없음: {path}"); return; }
+            var b = t.GetComponent<Button>();
+            if (b == null) return;
+            b.onClick.RemoveAllListeners();
+            b.onClick.AddListener(action);
+        }
+
+        void Start() { ResetRun(); ShowStart(); }
+
+        void ResetRun()
+        {
+            day = 1; lastResult = "";
+            status[0] = 20; status[1] = 20; status[2] = 0; status[3] = 10;
+            bag.Placed.Clear(); tray.Clear();
+            for (int i = 0; i < 3; i++) { endVoided[i] = false; endStreak[i] = 0; }
+            activeEnding = -1;
+            stageNo = 0; eventsThisStage = 0; stageRegion = "";
+            // 온보딩 진입점: EVT-O001이 있으면 첫 이벤트로
+            forcedNextId = FindEvent("EVT-O001") != null ? "EVT-O001" : "";
         }
 
         // ---------- 흐름 ----------
         void ShowStart() { Only(startPanel); }
+        void OnStartBtn() { if (!cutsceneSeen) { cutsceneSeen = true; Only(cutscenePanel); } else BeginOnboarding(); }
 
-        void StartGame()
+        // 온보딩(스테이지 0) 시작 — EVT-O001부터 그래프대로 진행
+        void BeginOnboarding()
         {
-            if (firstRun) ShowCutscene();
-            else ShowMain();
+            stageNo = 0; eventsThisStage = 0; stageRegion = "";
+            forcedNextId = FindEvent("EVT-O001") != null ? "EVT-O001" : "";
+            PlayNextEvent();
         }
 
-        void ShowCutscene() { Only(cutscenePanel); }
-
-        void ShowMain()
+        // 가방 정비 화면. onDone = 완료 버튼 동작, label = 버튼 문구
+        void ShowBag(System.Action onDone, string label)
         {
-            firstRun = false;
-            HideAllFlow();
-            if (mainCanvas) mainCanvas.SetActive(true);
-            if (mainScreen) { mainScreen.SetDay(day); mainScreen.GoHome(); }
+            bagOnDone = onDone;
+            if (bagBtnLabel != null) bagBtnLabel.text = label;
+            BuildBagScreen();
+            Only(bagPanel);
         }
 
-        void OnDepart(string room)
+        void BagDone() { var a = bagOnDone; bagOnDone = null; if (a != null) a(); }
+
+        // 그리드/트레이의 아이템 뷰를 모델에서 새로 생성
+        void BuildBagScreen()
         {
-            var held = mainScreen != null ? mainScreen.HeldItemNames() : new System.Collections.Generic.List<string>();
-            var ev = EventResolver.Pick(events, held, room, rng);
-
-            string body;
-            if (ev == null)
+            for (int i = gridRect.childCount - 1; i >= 0; i--) Destroy(gridRect.GetChild(i).gameObject);
+            for (int i = trayRect.childCount - 1; i >= 0; i--)
             {
-                body = "평범한 하루였다. 별일 없었다.";
+                var ch = trayRect.GetChild(i);
+                if (ch.GetComponent<InvItemView>() != null) Destroy(ch.gameObject);
             }
-            else
+            foreach (var p in bag.Placed)
             {
-                food = Clamp(food + ev.foodWaterChange);
-                morale = Clamp(morale + ev.moraleChange);
-                hp = Clamp(hp + ev.medicalSupplyChange);
-                string res = !string.IsNullOrEmpty(ev.branchAResult) ? ev.branchAResult
-                           : (!string.IsNullOrEmpty(ev.itemOwnedResult) ? ev.itemOwnedResult : "");
-                body = $"<b>{ev.eventName}</b>\n\n{res}{Deltas(ev)}";
+                var v = NewItemView(p); v.InBag = true;
+                v.transform.SetParent(gridRect, false); v.AttachToBag(p.Origin);
             }
+            foreach (var p in tray)
+            {
+                var v = NewItemView(p); v.InBag = false;
+                v.transform.SetParent(trayRect, false);
+            }
+            LayoutTrayOnly();
+            RecolorSlots();
+            RefreshUseList();
+            UpdateBagInfo();
+        }
 
-            eventTitle.text = $"{room} — DAY {day}";
-            eventBody.text = body;
+        // 그리드 활성 영역(중앙 2x2)만 밝게, 나머지는 딤
+        static readonly Color cSlotActive = new Color(0.83f, 0.78f, 0.67f, 0.55f);
+        static readonly Color cSlotDim = new Color(0.30f, 0.28f, 0.25f, 0.35f);
+        void RecolorSlots()
+        {
+            if (slotsRect == null) return;
+            int n = 0;
+            for (int i = 0; i < slotsRect.childCount; i++)
+            {
+                var img = slotsRect.GetChild(i).GetComponent<Image>();
+                if (img == null) continue;
+                int x = n % GRID_W, y = n / GRID_W; n++;
+                img.color = bag.IsActiveCell(new Vector2Int(x, y)) ? cSlotActive : cSlotDim;
+            }
+        }
+
+        InvItemView NewItemView(PlacedItem p)
+        {
+            var go = new GameObject("inv_" + p.Def.Id, typeof(RectTransform), typeof(CanvasGroup));
+            var v = go.AddComponent<InvItemView>();
+            v.Init(this, p, CELL);
+            return v;
+        }
+
+        // 트레이 아이템(미배치) 좌→우, 위→아래 배치
+        void LayoutTrayOnly()
+        {
+            float pad = 12f, x = pad, y = pad, rowH = 0f, areaW = trayRect.rect.width;
+            for (int i = 0; i < trayRect.childCount; i++)
+            {
+                var v = trayRect.GetChild(i).GetComponent<InvItemView>();
+                if (v == null) continue;
+                var irt = v.GetComponent<RectTransform>();
+                float iw = v.Model.Def.Width * CELL, ih = v.Model.Def.Height * CELL;
+                if (x + iw > areaW - pad && x > pad) { x = pad; y += rowH + pad; rowH = 0f; }
+                irt.anchorMin = new Vector2(0, 1); irt.anchorMax = new Vector2(0, 1); irt.pivot = new Vector2(0, 1);
+                irt.anchoredPosition = new Vector2(x, -y);
+                x += iw + pad; if (ih > rowH) rowH = ih;
+            }
+        }
+
+        // 회복 아이템 '사용' 버튼 목록 (그리드+트레이의 회복류)
+        void RefreshUseList()
+        {
+            for (int i = useListRect.childCount - 1; i >= 0; i--) Destroy(useListRect.GetChild(i).gameObject);
+            var rec = new List<PlacedItem>();
+            foreach (var p in bag.Placed) if (p.Def.IsRecovery) rec.Add(p);
+            foreach (var p in tray) if (p.Def.IsRecovery) rec.Add(p);
+            float y = 0;
+            foreach (var p in rec)
+            {
+                var pi = p;
+                string lbl = $"{p.Def.Name} 사용 ({StatNormal[p.Def.RecoverStat]} -{p.Def.RecoverAmt})";
+                Text tl; var b = UIFactory.Button(useListRect, "use", lbl, new Color(0.3f, 0.6f, 0.45f), () => UseRecovery(pi), out tl);
+                tl.fontSize = 24;
+                UIFactory.SetRect(b.GetComponent<RectTransform>(), 0, y, 540, 70);
+                y += 78;
+            }
+        }
+
+        void UseRecovery(PlacedItem p)
+        {
+            if (p == null || !p.Def.IsRecovery) return;
+            status[p.Def.RecoverStat] = Clamp(status[p.Def.RecoverStat] - p.Def.RecoverAmt);
+            p.Uses--;
+            if (p.Uses <= 0) { bag.RemoveFromBag(p); tray.Remove(p); }
+            BuildBagScreen();
+        }
+
+        void UpdateBagInfo()
+        {
+            string warn = tray.Count > 0
+                ? $"    <color=#e0a060>미배치 {tray.Count}개 — 그리드에 넣지 않으면 버려집니다</color>"
+                : "";
+            bagBody.text = $"가방 그리드 {bag.Width}×{bag.Height}    |    {StatusSummary()}{warn}";
+        }
+
+        // ---------- IBagHost (그리드 드래그 콜백) ----------
+        public RectTransform BagGridRect => gridRect;
+        public RectTransform BagDragLayer => dragLayer;
+        public RectTransform StorageRect => trayRect;
+        public RectTransform TrashRect => trashZone;
+        public BagModel Bag => bag;
+        public bool LockerOpen => true;
+        public float Cell => CELL;
+
+        public void PlaceInBag(InvItemView item, Vector2Int origin)
+        {
+            bag.PlaceAt(item.Model, origin);
+            tray.Remove(item.Model);
+            item.InBag = true;
+            item.AttachToBag(origin);
+            LayoutTrayOnly(); RefreshUseList(); UpdateBagInfo();
+        }
+
+        public void MoveToStorage(InvItemView item)
+        {
+            if (item.InBag) bag.RemoveFromBag(item.Model);
+            item.InBag = false;
+            if (!tray.Contains(item.Model)) tray.Add(item.Model);
+            item.transform.SetParent(trayRect, false);
+            LayoutTrayOnly(); RefreshUseList(); UpdateBagInfo();
+        }
+
+        public void ReturnToStorage(InvItemView item) => MoveToStorage(item);
+
+        public void Discard(InvItemView item)
+        {
+            if (item.InBag) bag.RemoveFromBag(item.Model);
+            tray.Remove(item.Model);
+            Destroy(item.gameObject);
+            LayoutTrayOnly(); RefreshUseList(); UpdateBagInfo();
+        }
+
+        // 다음 이벤트 재생 (forcedNextId 또는 "random" 해석). 정해진 게 없으면 휴식.
+        void PlayNextEvent()
+        {
+            tray.Clear();
+            string id = forcedNextId; forcedNextId = "";
+            if (id == "random") id = ResolveRandom();
+            curEvent = string.IsNullOrEmpty(id) ? null : FindEvent(id);
+            if (curEvent == null) { ShowRest(); return; }
+            RenderEvent();
+        }
+
+        void RenderEvent()
+        {
+            ClearChoices();
+            bool isEnding = !string.IsNullOrEmpty(curEvent.endingId);
+            eventTitle.text = stageNo == 0
+                ? "온보딩"
+                : $"스테이지 {stageNo}" + (string.IsNullOrEmpty(stageRegion) ? "" : " · " + stageRegion)
+                  + $" · {Mathf.Min(eventsThisStage + 1, STAGE_LEN)}/{STAGE_LEN}";
+            string head = string.IsNullOrEmpty(curEvent.objectId) ? curEvent.eventName : $"{curEvent.eventName}  ({curEvent.objectId})";
+            // 빈 이벤트는 임시 플레이스홀더로 동작 확인용 표시 (시트 내용 채우면 자동으로 실제 내용 노출)
+            string body = string.IsNullOrWhiteSpace(curEvent.situation)
+                ? $"<color=#888888>(임시) {curEvent.eventType}{(string.IsNullOrEmpty(curEvent.region) ? "" : " · " + curEvent.region)} 이벤트 — 내용 준비 중</color>\n\n터치해 다음으로 진행하세요."
+                : curEvent.situation;
+            string statusTag = string.IsNullOrWhiteSpace(curEvent.statusEffect) || curEvent.statusEffect == "없음"
+                ? "" : $"\n\n<color=#c8a060>유발: {curEvent.statusEffect}</color>";
+            eventBody.text = $"<b>{head}</b>\n\n{body}{statusTag}";
+
+            int shown = 0; bool gatedMissing = false;
+            if (curEvent.choices != null)
+                for (int i = 0; i < curEvent.choices.Length; i++)
+                {
+                    var c = curEvent.choices[i];
+                    bool needItem = !string.IsNullOrEmpty(c.requiredItem);
+                    bool has = !needItem || HasItem(c.requiredItem);
+                    if (needItem && !has) gatedMissing = true;
+                    AddChoice(c, i, has, needItem && !has);
+                    shown++;
+                }
+
+            if (shown == 0) AddConfirm(() => AfterEvent(null));      // 분기 없음 → 터치하면 다음 이벤트
+            else if (!isEnding && gatedMissing) AddGambleAndGiveUp(); // 아이템 부족 시에만 도박/포기
             Only(eventPanel);
         }
 
-        void NextDay()
+        // NextEventId == "random": 온보딩 제외, (현재 지역의 특정지역 + 일반) 중 랜덤
+        string ResolveRandom()
         {
-            day++;
-            food = Clamp(food - 8); // 하루치 허기
-            if (mainScreen) mainScreen.SetDay(day);
-
-            if (hp <= 0 || food <= 0) ShowGameOver();
-            else ShowMain();
+            var pool = new List<EventData>();
+            foreach (var ev in events)
+            {
+                if (ev == null || ev.eventType == "온보딩") continue;
+                bool general = ev.eventType == "일반";
+                bool regionMatch = ev.eventType == "특정지역" && ev.region == stageRegion;
+                if (general || regionMatch) pool.Add(ev);
+            }
+            return pool.Count == 0 ? "" : pool[rng.Next(pool.Count)].eventId;
         }
 
-        void ShowGameOver()
+        // 이벤트 결과 후 진행 (가방 열림 > 지정 다음/랜덤 > 휴식)
+        void AfterEvent(EventChoice c)
         {
-            string reason = food <= 0 ? "배가 고파 쓰러졌다..." : "체력이 바닥났다...";
-            goBody.text = $"DAY {day}\n\n{reason}";
+            if (curEvent != null) ApplyNewState(curEvent.statusEffect);  // 이벤트 유발 상태이상 적용
+            string nextId = (c != null && !string.IsNullOrEmpty(c.nextEventId)) ? c.nextEventId : "";
+            if (c != null && c.opensInventory)
+            {
+                // 등장 물건(EventObjectID) 지급 → 트레이(드래그로 그리드에 배치)
+                if (curEvent != null) GrantObjectItem(curEvent.objectId);
+                ShowBag(() => AfterEventResolve(nextId), "계속 →");
+            }
+            else
+                AfterEventResolve(nextId);
+        }
+
+        // ---------- 시트 아이템 지급 ----------
+        ItemData FindItemData(string id)
+        {
+            if (items == null || string.IsNullOrEmpty(id)) return null;
+            foreach (var it in items) if (it != null && it.itemId == id) return it;
+            return null;
+        }
+
+        // ItemData(시트) → 그리드용 ItemDef 변환 (모양 미설정 시 1x1)
+        static ItemDef DefFromItemData(ItemData d)
+        {
+            var cells = d.GetOccupiedCells();
+            if (cells.Count == 0) cells.Add(Vector2Int.zero);
+            var def = new ItemDef(d.itemId, string.IsNullOrEmpty(d.itemName) ? d.itemId : d.itemName,
+                new Color(0.62f, 0.6f, 0.5f), cells);
+            def.MaxUses = d.durability > 0 ? d.durability : 1;
+            return def;
+        }
+
+        // 이벤트 등장 물건을 트레이로 지급
+        void GrantObjectItem(string itemId)
+        {
+            if (string.IsNullOrEmpty(itemId)) return;
+            var d = FindItemData(itemId);
+            if (d == null) { Debug.LogWarning($"[GameFlow] 아이템 데이터 없음: {itemId} (Items 배열/시트 확인)"); return; }
+            tray.Add(new PlacedItem(DefFromItemData(d)));
+        }
+
+        void AfterEventResolve(string nextId)
+        {
+            // 실전 스테이지만: 시간 경과(상태 악화) + 사망 판정 + 5이벤트 카운트
+            if (stageNo >= 1)
+            {
+                for (int i = 0; i < 4; i++) status[i] = Clamp(status[i] + DailyInc[i]);
+                for (int i = 0; i < 4; i++) if (status[i] >= 100) { ShowGameOver(i); return; }
+                eventsThisStage++;
+                if (eventsThisStage >= STAGE_LEN) { ShowRest(); return; }
+            }
+
+            if (nextId == "random") nextId = ResolveRandom();
+            if (string.IsNullOrEmpty(nextId))
+            {
+                if (stageNo == 0) { ShowRest(); return; }   // 온보딩 종료(다음 미지정)
+                nextId = ResolveRandom();
+                if (string.IsNullOrEmpty(nextId)) { ShowRest(); return; }
+            }
+            forcedNextId = nextId;
+            PlayNextEvent();
+        }
+
+        // 한 스테이지(5이벤트) 완료 → 휴식
+        void ShowRest()
+        {
+            string head = stageNo == 0 ? "온보딩 완료" : $"스테이지 {stageNo} 완료";
+            restBody.text = $"<b>{head}</b>\n\n{StatusSummary()}\n\n휴식하며 가방을 정비하고, 지도에서 다음 장소를 고르세요.";
+            Only(restPanel);
+        }
+
+        // 지도에서 지역 선택 → 다음 스테이지 시작
+        void StartStage(string region)
+        {
+            stageNo++;
+            stageRegion = region;
+            eventsThisStage = 0;
+            forcedNextId = "random";   // 첫 이벤트는 지역+일반 풀에서 랜덤
+            PlayNextEvent();
+        }
+
+        void ShowMap()
+        {
+            for (int i = mapArea.childCount - 1; i >= 0; i--) Destroy(mapArea.GetChild(i).gameObject);
+            var regions = new List<string>();
+            foreach (var ev in events)
+                if (ev != null && ev.eventType == "특정지역" && !string.IsNullOrEmpty(ev.region) && !regions.Contains(ev.region))
+                    regions.Add(ev.region);
+            float y = 0;
+            foreach (var r in regions)
+            {
+                var rr = r;
+                Text tl; var b = UIFactory.Button(mapArea, "loc", r, new Color(0.32f, 0.45f, 0.6f), () => StartStage(rr), out tl);
+                UIFactory.SetRect(b.GetComponent<RectTransform>(), 0, y, 920, 130); y += 150;
+            }
+            if (regions.Count == 0)
+            {
+                Text tl; var b = UIFactory.Button(mapArea, "loc", "어디든 (일반)", new Color(0.32f, 0.45f, 0.6f), () => StartStage(""), out tl);
+                UIFactory.SetRect(b.GetComponent<RectTransform>(), 0, 0, 920, 130);
+            }
+            Only(mapPanel);
+        }
+
+        EventData FindEvent(string id)
+        {
+            foreach (var ev in events) if (ev != null && ev.eventId == id) return ev;
+            return null;
+        }
+
+        bool HasEndingEvents(int e)
+        {
+            foreach (var ev in events) if (ev != null && ev.endingId == EndIds[e]) return true;
+            return false;
+        }
+
+        EventData NextEndingEvent(int e)
+        {
+            var list = new List<EventData>();
+            foreach (var ev in events) if (ev != null && ev.endingId == EndIds[e]) list.Add(ev);
+            if (list.Count == 0) return null;
+            return list[Mathf.Min(endStreak[e], list.Count - 1)];
+        }
+
+        void OnChoice(EventChoice c)
+        {
+            status[0] = Clamp(status[0] + c.hunger);
+            status[1] = Clamp(status[1] + c.thirst);
+            status[2] = Clamp(status[2] + c.pain);
+            status[3] = Clamp(status[3] + c.fatigue);
+
+            // 보상/분실
+            string extra = "";
+            if (!string.IsNullOrEmpty(c.rewardItem))
+            {
+                AddItem(c.rewardItem);
+                extra += $"\n\n<b>[{c.rewardItem} 획득]</b>  (다음 가방 정비에서 배치/정리)";
+            }
+            if (c.loseRandomItem)
+            {
+                var all = new List<PlacedItem>(bag.Placed); all.AddRange(tray);
+                if (all.Count > 0)
+                {
+                    var p = all[rng.Next(all.Count)];
+                    bag.RemoveFromBag(p); tray.Remove(p);
+                    extra += $"\n\n<color=#cc8888>[{p.Def.Name}을(를) 잃어버렸다]</color>";
+                }
+            }
+            if (!string.IsNullOrEmpty(c.requiredItem)) ConsumeUse(c.requiredItem);
+
+            // 시트: 선택 시 상태 변경
+            ApplyNewState(c.newState);
+
+            bool isEnding = curEvent != null && !string.IsNullOrEmpty(curEvent.endingId);
+            if (isEnding)
+            {
+                int e = System.Array.IndexOf(EndIds, curEvent.endingId);
+                if (e >= 0)
+                {
+                    if (c.correct)
+                    {
+                        endStreak[e]++;
+                        if (endStreak[e] >= 3) { lastResult = c.resultText; ShowEnding(e); return; }
+                    }
+                    else { endVoided[e] = true; activeEnding = -1; }
+                }
+            }
+
+            lastResult = (curEvent != null ? $"[{curEvent.eventName}] " : "") + c.resultText;
+            ClearChoices();
+            var cc = c;
+
+            // 결과 텍스트/효과가 없으면 결과 화면을 건너뛰고 바로 다음으로 진행
+            string resultBody = (c.resultText ?? "") + ChangeText(c) + extra;
+            if (string.IsNullOrWhiteSpace(resultBody))
+            {
+                AfterEvent(cc);
+                return;
+            }
+            if (c.opensInventory) resultBody += "\n\n<color=#a0d0e0>[가방을 열어 정리하세요]</color>";
+            eventBody.text = resultBody;
+            AddConfirm(() => AfterEvent(cc));   // 진행: 가방 열림 > 지정 다음/랜덤 > 휴식
+        }
+
+        // 상태 임계치(Level과 일치): 주의 40, 위험 70
+        const int T_CAUTION = 40, T_DANGER = 70;
+
+        // 시트 EventBranchXNewState 적용. 두 형식 지원 (구분 ; 또는 ,):
+        //  (1) 컨디션 부여  예) "배고픔" → 해당 스탯을 그 컨디션 임계치까지만 악화.
+        //      이미 그 컨디션(임계치 이상)이면 변화 없음. (주의어=40, 위험어=70)
+        //      배고픔/굶주림→허기, 목마름/갈증→수분, 아픔/부상/질병→건강, 피곤함/비몽사몽→기운
+        //  (2) "스탯±N"  예) "건강+20;기운-10"  (내부 스탯은 값이 클수록 나쁨)
+        void ApplyNewState(string s)
+        {
+            if (string.IsNullOrEmpty(s)) return;
+            foreach (var tok in s.Split(';', ','))
+            {
+                var t = tok.Trim();
+                if (t.Length == 0 || t == "없음") continue;
+
+                // (1) 컨디션 부여 (임계치까지만, 이미 그 상태면 변화 없음)
+                if (TryApplyCondition(t)) continue;
+
+                // (2) 스탯±N (명시적 증감)
+                for (int i = 0; i < StatNormal.Length; i++)
+                {
+                    if (t.StartsWith(StatNormal[i]))
+                    {
+                        int v;
+                        if (int.TryParse(t.Substring(StatNormal[i].Length).Trim(), out v))
+                            status[i] = Clamp(status[i] + v);
+                        break;
+                    }
+                }
+                // 그 외(불안/중독/공포/화상 등 별도 상태이상)는 4스탯 모델에 없어 현재 무시
+            }
+        }
+
+        // 컨디션 단어면 해당 스탯을 임계치까지 올림(이미 그 이상이면 그대로). 처리되면 true.
+        bool TryApplyCondition(string w)
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                if (w == StatCaution[i] || w == StatNormal[i]) { status[i] = Mathf.Max(status[i], T_CAUTION); return true; }
+                if (w == StatDanger[i]) { status[i] = Mathf.Max(status[i], T_DANGER); return true; }
+            }
+            if (w == "부상") { status[2] = Mathf.Max(status[2], T_CAUTION); return true; } // 건강
+            return false;
+        }
+
+        void ShowEnding(int e)
+        {
+            string[] titles = { "구조 — A 엔딩", "탈출 — B 엔딩", "생존 — C 엔딩" };
+            endingBody.text = $"<b>{titles[e]}</b>\n\n스테이지 {stageNo}\n\n{lastResult}\n\n살아남았다.";
+            Only(endingPanel);
+        }
+
+        void ShowGameOver(int idx)
+        {
+            goBody.text = $"스테이지 {stageNo}\n\n{StatDanger[idx]}(으)로 쓰러졌다...";
             Only(gameOverPanel);
         }
 
-        void Restart()
+        void Restart() { ResetRun(); ShowStart(); } // 시작화면부터(컷씬은 이미 봤으면 스킵)
+
+        // ---------- 인벤토리 보조 (이벤트는 한글 이름으로 아이템 참조) ----------
+        bool HasItem(string name)
         {
-            day = 1; hp = 100; food = 100; morale = 100;
-            ShowMain();
+            foreach (var p in bag.Placed) if (p.Def.Name == name && p.Uses > 0) return true;
+            foreach (var p in tray) if (p.Def.Name == name && p.Uses > 0) return true;
+            return false;
+        }
+        bool AddItem(string name)
+        {
+            var def = ItemDatabase.GetByName(name);
+            if (def == null) return false;
+            var pi = new PlacedItem(def);
+            if (!TryAutoPlace(pi)) tray.Add(pi);   // 자동 배치 실패 시 트레이로(정비에서 결정)
+            return true;
+        }
+        bool TryAutoPlace(PlacedItem pi)
+        {
+            for (int y = 0; y < bag.Height; y++)
+                for (int x = 0; x < bag.Width; x++)
+                {
+                    var o = new Vector2Int(x, y);
+                    if (bag.CanPlace(pi.Def, o, null)) { bag.PlaceAt(pi, o); return true; }
+                }
+            return false;
+        }
+        void ConsumeUse(string name)
+        {
+            foreach (var p in bag.Placed)
+                if (p.Def.Name == name && p.Uses > 0) { p.Uses--; if (p.Uses <= 0) bag.RemoveFromBag(p); return; }
+            foreach (var p in tray)
+                if (p.Def.Name == name && p.Uses > 0) { p.Uses--; if (p.Uses <= 0) tray.Remove(p); return; }
         }
 
-        void Continue() // 이어하기 (임시): 약간 회복하고 계속
+        // ---------- 상태/텍스트 ----------
+        static int Clamp(int v) => Mathf.Clamp(v, 0, 100);
+        static int Level(int v) => v >= 70 ? 2 : v >= 40 ? 1 : 0;
+        string StatusSummary()
         {
-            hp = Mathf.Max(hp, 30); food = Mathf.Max(food, 30);
-            ShowMain();
+            var bad = new List<string>();
+            for (int i = 0; i < 4; i++)
+            {
+                int lv = Level(status[i]);
+                if (lv == 1) bad.Add(StatCaution[i]);
+                else if (lv == 2) bad.Add(StatDanger[i] + "(위험)");
+            }
+            return bad.Count == 0 ? "아직은 견딜 만하다." : "지금 " + string.Join(", ", bad) + " 상태.";
         }
-
-        string Deltas(EventData ev)
+        string ChangeText(EventChoice c)
         {
             string s = "";
-            if (ev.foodWaterChange != 0) s += $"\n식량 {Sign(ev.foodWaterChange)}";
-            if (ev.moraleChange != 0) s += $"\n정신력 {Sign(ev.moraleChange)}";
-            if (ev.medicalSupplyChange != 0) s += $"\n체력 {Sign(ev.medicalSupplyChange)}";
+            s += L(0, c.hunger); s += L(1, c.thirst); s += L(2, c.pain); s += L(3, c.fatigue);
             return s.Length > 0 ? "\n" + s : "";
         }
+        string L(int i, int d) => d == 0 ? "" : $"\n{StatNormal[i]} {(d > 0 ? "악화" : "회복")} ({(d > 0 ? "+" : "") + d})";
 
-        static string Sign(int v) => (v > 0 ? "+" : "") + v;
-        static int Clamp(int v) => Mathf.Clamp(v, 0, 100);
+        // ---------- 선택지 ----------
+        void ClearChoices() { for (int i = choiceArea.childCount - 1; i >= 0; i--) Destroy(choiceArea.GetChild(i).gameObject); }
 
-        // ---------- 더미 화면 빌드 ----------
-        void BuildFlowUI()
+        void AddChoice(EventChoice c, int index, bool enabled, bool gatedMissing)
+        {
+            string lbl = gatedMissing ? $"{c.label}   (필요: {c.requiredItem})" : c.label;
+            Color col = enabled ? new Color(0.28f, 0.50f, 0.70f) : new Color(0.32f, 0.32f, 0.34f);
+            Text t; var b = UIFactory.Button(choiceArea, "choice" + index, lbl, col, null, out t);
+            t.fontSize = 27;
+            b.interactable = enabled;
+            if (enabled) { var cc = c; b.onClick.AddListener(() => OnChoice(cc)); }
+            UIFactory.SetRect(b.GetComponent<RectTransform>(), 0, ChoiceY(), 920, 110);
+        }
+
+        int choiceCount;
+        int ChoiceY() { int y = choiceCount * 122; choiceCount++; return y; }
+
+        void AddGambleAndGiveUp()
+        {
+            // 도전(반반) — 도구 없이도 시도
+            Text gl; var gb = UIFactory.Button(choiceArea, "gamble", "맨몸으로 도전한다 (성공 반반)", new Color(0.55f, 0.45f, 0.25f), Gamble, out gl);
+            gl.fontSize = 26;
+            UIFactory.SetRect(gb.GetComponent<RectTransform>(), 0, ChoiceY(), 920, 110);
+            // 포기
+            Text pl; var pb = UIFactory.Button(choiceArea, "giveup", "포기한다", new Color(0.4f, 0.4f, 0.42f), GiveUp, out pl);
+            pl.fontSize = 26;
+            UIFactory.SetRect(pb.GetComponent<RectTransform>(), 0, ChoiceY(), 920, 110);
+        }
+
+        void Gamble()
+        {
+            bool win = rng.Next(100) < 50;
+            ClearChoices();
+            if (win)
+            {
+                status[2] = Clamp(status[2] - 5);
+                lastResult = "맨몸으로 부딪쳐 운 좋게 넘겼다.";
+                eventBody.text = "운이 좋았다. 큰 탈 없이 해냈다.\n건강 회복 (-5)";
+            }
+            else
+            {
+                status[2] = Clamp(status[2] + 20);
+                lastResult = "무리하게 덤볐다가 다쳤다.";
+                eventBody.text = "무리했다. 다쳤다.\n건강 악화 (+20)";
+            }
+            AddConfirm(() => AfterEvent(null));
+        }
+
+        void GiveUp()
+        {
+            ClearChoices();
+            status[3] = Clamp(status[3] + 6);
+            lastResult = "위험을 피해 그냥 물러났다.";
+            eventBody.text = "포기하고 물러났다.\n기운 악화 (+6)";
+            AddConfirm(() => AfterEvent(null));
+        }
+
+        void AddConfirm(UnityEngine.Events.UnityAction onConfirm)
+        {
+            choiceCount = 0;
+            Text t; var b = UIFactory.Button(choiceArea, "Confirm", "확인", new Color(0.3f, 0.55f, 0.75f), onConfirm, out t);
+            UIFactory.SetRect(b.GetComponent<RectTransform>(), (920 - 460) / 2, 0, 460, 120);
+        }
+
+        // ---------- UI 빌드 ----------
+        void BuildUI()
         {
             var canvasGO = new GameObject("FlowCanvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             var canvas = canvasGO.GetComponent<Canvas>();
@@ -137,83 +736,151 @@ namespace SeoulLast
             scaler.matchWidthOrHeight = 0.5f;
             var root = canvas.GetComponent<RectTransform>();
 
-            startPanel = BuildStart(root);
-            cutscenePanel = BuildCutscene(root);
-            eventPanel = BuildEvent(root);
-            gameOverPanel = BuildGameOver(root);
-            HideAllFlow();
+            startPanel = Simple(root, "StartPanel", new Color(0.12f, 0.13f, 0.16f), "서울 라스트 (가제)", "시작", OnStartBtn);
+            cutscenePanel = Simple(root, "CutscenePanel", new Color(0.06f, 0.06f, 0.08f), "눈을 떠보니, 모두 사라졌다.\n남은 건 너 하나뿐.\n\n(이 하루는 계속 반복된다…)", "계속", BeginOnboarding);
+
+            bagPanel = BuildBagPanel(root);
+            eventPanel = BuildEventPanel(root);
+            restPanel = BuildRestPanel(root);
+            mapPanel = BuildMapPanel(root);
+            endingPanel = BuildText(root, "EndingPanel", new Color(0.10f, 0.16f, 0.12f), "엔딩", new Color(0.85f, 0.95f, 0.8f), out endingBody, "다시 시작", Restart);
+            gameOverPanel = BuildText(root, "GameOverPanel", new Color(0.06f, 0.04f, 0.05f), "사망", new Color(0.9f, 0.4f, 0.4f), out goBody, "다시 시작", Restart);
         }
 
-        GameObject BuildStart(Transform root)
+        GameObject BuildRestPanel(Transform root)
         {
-            var p = UIFactory.Panel(root, "StartPanel", new Color(0.12f, 0.13f, 0.16f));
-            UIFactory.Fill(p.rectTransform);
-            var title = UIFactory.Label(p.transform, "T", "서울 라스트 (가제)", 60, TextAnchor.MiddleCenter, Color.white);
-            UIFactory.SetRect(title.rectTransform, 60, 600, W - 120, 120);
-            Text bl;
-            var b = UIFactory.Button(p.transform, "StartBtn", "시작", new Color(0.25f, 0.6f, 0.45f), StartGame, out bl);
-            UIFactory.SetRect(b.GetComponent<RectTransform>(), (W - 460) / 2, 1100, 460, 150);
+            var p = UIFactory.Panel(root, "RestPanel", new Color(0.10f, 0.13f, 0.15f)); UIFactory.Fill(p.rectTransform);
+            var h = UIFactory.Label(p.transform, "H", "휴식", 46, TextAnchor.UpperCenter, new Color(0.8f, 0.92f, 0.95f));
+            UIFactory.SetRect(h.rectTransform, 60, 130, W - 120, 80);
+            var box = UIFactory.Panel(p.transform, "Box", new Color(1, 1, 1, 0.08f));
+            UIFactory.SetRect(box.rectTransform, 90, 250, W - 180, 700);
+            restBody = UIFactory.Label(box.transform, "B", "", 33, TextAnchor.UpperLeft, new Color(0.85f, 0.92f, 0.95f));
+            UIFactory.SetRect(restBody.rectTransform, 40, 40, W - 260, 620);
+            Text bl; var b1 = UIFactory.Button(p.transform, "RestBag", "가방 정비", new Color(0.3f, 0.55f, 0.45f), () => ShowBag(ShowRest, "휴식으로 →"), out bl);
+            UIFactory.SetRect(b1.GetComponent<RectTransform>(), (W - 460) / 2f, 1300, 460, 140);
+            Text bl2; var b2 = UIFactory.Button(p.transform, "RestMap", "지도 → 다음 장소", new Color(0.85f, 0.55f, 0.3f), ShowMap, out bl2);
+            UIFactory.SetRect(b2.GetComponent<RectTransform>(), (W - 460) / 2f, 1470, 460, 140);
             return p.gameObject;
         }
 
-        GameObject BuildCutscene(Transform root)
+        GameObject BuildMapPanel(Transform root)
         {
-            var p = UIFactory.Panel(root, "CutscenePanel", new Color(0.06f, 0.06f, 0.08f));
-            UIFactory.Fill(p.rectTransform);
-            var body = UIFactory.Label(p.transform, "B", "[컷씬 — 준비 중]\n\n눈을 떠보니, 모두 사라졌다.\n남은 건 너 하나뿐.", 36, TextAnchor.MiddleCenter, new Color(0.9f, 0.9f, 0.92f));
-            UIFactory.SetRect(body.rectTransform, 80, 500, W - 160, 500);
-            Text bl;
-            var b = UIFactory.Button(p.transform, "CutNext", "계속", new Color(0.3f, 0.45f, 0.7f), ShowMain, out bl);
-            UIFactory.SetRect(b.GetComponent<RectTransform>(), (W - 400) / 2, 1300, 400, 140);
+            var p = UIFactory.Panel(root, "MapPanel", new Color(0.09f, 0.11f, 0.14f)); UIFactory.Fill(p.rectTransform);
+            var h = UIFactory.Label(p.transform, "H", "지도 — 다음 장소 선택", 42, TextAnchor.UpperCenter, new Color(0.85f, 0.9f, 0.95f));
+            UIFactory.SetRect(h.rectTransform, 60, 150, W - 120, 80);
+            var areaGO = new GameObject("MapArea", typeof(RectTransform));
+            mapArea = areaGO.GetComponent<RectTransform>(); mapArea.SetParent(p.transform, false);
+            UIFactory.SetRect(mapArea, 80, 320, W - 160, 1400);
             return p.gameObject;
         }
 
-        GameObject BuildEvent(Transform root)
+        GameObject Simple(Transform root, string name, Color bg, string text, string btn, UnityEngine.Events.UnityAction onClick)
         {
-            var p = UIFactory.Panel(root, "EventPanel", new Color(0.10f, 0.11f, 0.14f));
-            UIFactory.Fill(p.rectTransform);
-            eventTitle = UIFactory.Label(p.transform, "T", "", 40, TextAnchor.UpperCenter, new Color(0.95f, 0.85f, 0.5f));
-            UIFactory.SetRect(eventTitle.rectTransform, 60, 200, W - 120, 80);
-            var box = UIFactory.Panel(p.transform, "Box", new Color(0.16f, 0.17f, 0.21f));
-            UIFactory.SetRect(box.rectTransform, 90, 320, W - 180, 760);
-            eventBody = UIFactory.Label(box.transform, "B", "", 34, TextAnchor.UpperLeft, new Color(0.93f, 0.94f, 0.97f));
-            UIFactory.SetRect(eventBody.rectTransform, 40, 40, W - 260, 680);
-            Text bl;
-            var b = UIFactory.Button(p.transform, "EvtOk", "확인", new Color(0.3f, 0.55f, 0.75f), NextDay, out bl);
+            var p = UIFactory.Panel(root, name, bg); UIFactory.Fill(p.rectTransform);
+            var t = UIFactory.Label(p.transform, "T", text, 40, TextAnchor.MiddleCenter, Color.white);
+            UIFactory.SetRect(t.rectTransform, 80, 500, W - 160, 520);
+            Text bl; var b = UIFactory.Button(p.transform, name + "Btn", btn, new Color(0.3f, 0.55f, 0.45f), onClick, out bl);
+            UIFactory.SetRect(b.GetComponent<RectTransform>(), (W - 460) / 2, 1250, 460, 150);
+            // 스타트 버튼 이름 고정 (테스트용)
+            if (name == "StartPanel") b.gameObject.name = "StartBtn";
+            if (name == "CutscenePanel") b.gameObject.name = "CutNext";
+            return p.gameObject;
+        }
+
+        GameObject BuildText(Transform root, string name, Color bg, string head, Color headCol, out Text body, string btn, UnityEngine.Events.UnityAction onClick)
+        {
+            var p = UIFactory.Panel(root, name, bg); UIFactory.Fill(p.rectTransform);
+            var h = UIFactory.Label(p.transform, "H", head, 46, TextAnchor.UpperCenter, headCol);
+            UIFactory.SetRect(h.rectTransform, 60, 130, W - 120, 80);
+            var box = UIFactory.Panel(p.transform, "Box", new Color(1, 1, 1, 0.08f));
+            UIFactory.SetRect(box.rectTransform, 90, 250, W - 180, 820);
+            body = UIFactory.Label(box.transform, "B", "", 33, TextAnchor.UpperLeft, headCol);
+            UIFactory.SetRect(body.rectTransform, 40, 40, W - 260, 740);
+            Text bl; var b = UIFactory.Button(p.transform, name + "Btn", btn, new Color(0.45f, 0.42f, 0.3f), onClick, out bl);
             UIFactory.SetRect(b.GetComponent<RectTransform>(), (W - 460) / 2, 1180, 460, 150);
             return p.gameObject;
         }
 
-        GameObject BuildGameOver(Transform root)
+        GameObject BuildBagPanel(Transform root)
         {
-            var p = UIFactory.Panel(root, "GameOverPanel", new Color(0.05f, 0.04f, 0.05f));
-            UIFactory.Fill(p.rectTransform);
-            var title = UIFactory.Label(p.transform, "T", "사망", 80, TextAnchor.MiddleCenter, new Color(0.85f, 0.25f, 0.25f));
-            UIFactory.SetRect(title.rectTransform, 60, 480, W - 120, 130);
-            goBody = UIFactory.Label(p.transform, "B", "", 36, TextAnchor.UpperCenter, new Color(0.9f, 0.9f, 0.9f));
-            UIFactory.SetRect(goBody.rectTransform, 80, 680, W - 160, 300);
-            Text bl;
-            var restart = UIFactory.Button(p.transform, "Restart", "처음부터", new Color(0.5f, 0.3f, 0.3f), Restart, out bl);
-            UIFactory.SetRect(restart.GetComponent<RectTransform>(), 120, 1250, 400, 150);
-            Text cl;
-            var cont = UIFactory.Button(p.transform, "Continue", "이어하기", new Color(0.35f, 0.45f, 0.55f), Continue, out cl);
-            UIFactory.SetRect(cont.GetComponent<RectTransform>(), W - 120 - 400, 1250, 400, 150);
+            var p = UIFactory.Panel(root, "BagPanel", new Color(0.14f, 0.13f, 0.12f)); UIFactory.Fill(p.rectTransform);
+            var h = UIFactory.Label(p.transform, "H", "가방 정비", 44, TextAnchor.UpperCenter, Color.white);
+            UIFactory.SetRect(h.rectTransform, 60, 60, W - 120, 70);
+            bagBody = UIFactory.Label(p.transform, "Info", "", 25, TextAnchor.UpperCenter, new Color(0.85f, 0.85f, 0.8f));
+            UIFactory.SetRect(bagBody.rectTransform, 40, 140, W - 80, 60);
+
+            // 그리드 (배경 + 슬롯 + 아이템 레이어)
+            float gw = GRID_W * CELL, gh = GRID_H * CELL, gx = (W - gw) / 2f, gy = 220f;
+            var gbg = UIFactory.Img(p.transform, "GridBG", new Color(0.10f, 0.10f, 0.12f));
+            UIFactory.SetRect(gbg.rectTransform, gx - 6, gy - 6, gw + 12, gh + 12);
+            var slotsGO = new GameObject("Slots", typeof(RectTransform));
+            slotsRect = slotsGO.GetComponent<RectTransform>(); slotsRect.SetParent(p.transform, false);
+            UIFactory.SetRect(slotsRect, gx, gy, gw, gh);
+            for (int yy = 0; yy < GRID_H; yy++)
+                for (int xx = 0; xx < GRID_W; xx++)
+                {
+                    var s = UIFactory.Img(slotsRect, "slot", new Color(0.83f, 0.78f, 0.67f, 0.45f));
+                    s.raycastTarget = false;
+                    UIFactory.SetRect(s.rectTransform, xx * CELL + 3, yy * CELL + 3, CELL - 6, CELL - 6);
+                }
+            var gridGO = new GameObject("Grid", typeof(RectTransform));
+            gridRect = gridGO.GetComponent<RectTransform>(); gridRect.SetParent(p.transform, false);
+            UIFactory.SetRect(gridRect, gx, gy, gw, gh);
+
+            // 트레이(획득 대기) + 버리기 존 — 그리드 크기와 무관한 고정 레이아웃
+            float ty = gy + gh + 24f;
+            const float TRAY_W = 620f, TRASH_W = 300f, GAP = 20f;
+            float trayX = (W - (TRAY_W + GAP + TRASH_W)) / 2f;
+            float trashX = trayX + TRAY_W + GAP;
+            var tbg = UIFactory.Img(p.transform, "TrayBG", new Color(0.20f, 0.19f, 0.17f));
+            UIFactory.SetRect(tbg.rectTransform, trayX, ty, TRAY_W, 300);
+            var tlb = UIFactory.Label(tbg.transform, "l", "획득 대기 (그리드로 끌어 보관)", 22, TextAnchor.UpperLeft, new Color(0.8f, 0.8f, 0.7f));
+            tlb.raycastTarget = false; UIFactory.SetRect(tlb.rectTransform, 14, 8, TRAY_W - 28, 32);
+            var trayGO = new GameObject("Tray", typeof(RectTransform));
+            trayRect = trayGO.GetComponent<RectTransform>(); trayRect.SetParent(p.transform, false);
+            UIFactory.SetRect(trayRect, trayX, ty + 44, TRAY_W, 252);
+
+            var tz = UIFactory.Img(p.transform, "Trash", new Color(0.40f, 0.18f, 0.18f));
+            trashZone = tz.rectTransform;
+            UIFactory.SetRect(trashZone, trashX, ty, TRASH_W, 300);
+            var tzl = UIFactory.Label(tz.transform, "l", "여기로 끌어\n버리기", 26, TextAnchor.MiddleCenter, new Color(0.95f, 0.7f, 0.7f));
+            tzl.raycastTarget = false; UIFactory.Fill(tzl.rectTransform);
+
+            // 회복 아이템 사용 목록
+            var useGO = new GameObject("UseList", typeof(RectTransform));
+            useListRect = useGO.GetComponent<RectTransform>(); useListRect.SetParent(p.transform, false);
+            UIFactory.SetRect(useListRect, trayX, ty + 320, TRAY_W, 250);
+
+            var b = UIFactory.Button(p.transform, "DayStart", "계속 →", new Color(0.85f, 0.45f, 0.25f), BagDone, out bagBtnLabel);
+            UIFactory.SetRect(b.GetComponent<RectTransform>(), (W - 460) / 2f, 1730, 460, 140);
+
+            // 드래그 레이어 (최상단, raycast 없음)
+            var dl = new GameObject("DragLayer", typeof(RectTransform));
+            dragLayer = dl.GetComponent<RectTransform>(); dragLayer.SetParent(p.transform, false);
+            UIFactory.Fill(dragLayer); dragLayer.SetAsLastSibling();
             return p.gameObject;
         }
 
-        void HideAllFlow()
+        GameObject BuildEventPanel(Transform root)
         {
-            if (startPanel) startPanel.SetActive(false);
-            if (cutscenePanel) cutscenePanel.SetActive(false);
-            if (eventPanel) eventPanel.SetActive(false);
-            if (gameOverPanel) gameOverPanel.SetActive(false);
+            var p = UIFactory.Panel(root, "EventPanel", new Color(0.10f, 0.11f, 0.14f)); UIFactory.Fill(p.rectTransform);
+            eventTitle = UIFactory.Label(p.transform, "T", "", 38, TextAnchor.UpperCenter, new Color(0.95f, 0.85f, 0.5f));
+            UIFactory.SetRect(eventTitle.rectTransform, 60, 150, W - 120, 70);
+            var box = UIFactory.Panel(p.transform, "Box", new Color(0.16f, 0.17f, 0.21f));
+            UIFactory.SetRect(box.rectTransform, 90, 250, W - 180, 420);
+            eventBody = UIFactory.Label(box.transform, "B", "", 31, TextAnchor.UpperLeft, new Color(0.93f, 0.94f, 0.97f));
+            UIFactory.SetRect(eventBody.rectTransform, 36, 30, W - 252, 360);
+            var caGO = new GameObject("ChoiceArea", typeof(RectTransform));
+            choiceArea = caGO.GetComponent<RectTransform>(); choiceArea.SetParent(p.transform, false);
+            UIFactory.SetRect(choiceArea, 80, 710, W - 160, 600);
+            return p.gameObject;
         }
 
-        void Only(GameObject panel)
+        void HideAll()
         {
-            if (mainCanvas) mainCanvas.SetActive(false);
-            HideAllFlow();
-            if (panel) panel.SetActive(true);
+            foreach (var g in new[] { startPanel, cutscenePanel, bagPanel, eventPanel, restPanel, mapPanel, endingPanel, gameOverPanel })
+                if (g) g.SetActive(false);
         }
+        void Only(GameObject panel) { HideAll(); if (panel) panel.SetActive(true); }
     }
 }

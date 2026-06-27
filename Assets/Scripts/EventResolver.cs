@@ -3,54 +3,35 @@ using SeoulLast.Data;
 
 namespace SeoulLast
 {
-    // 보유 아이템 + 지역 조건으로 후보 풀을 만들고, probability를 가중치로 비례 추첨(A안).
+    // 확정 분기: 선택한 방의 이벤트를 찾고, 보유 아이템 유무로 결과가 '확정'된다(RNG 아님).
     public static class EventResolver
     {
-        // nothingWeight = "평범한 하루(무이벤트)" 가중치
-        public static EventData Pick(IList<EventData> all, ICollection<string> heldItemNames, string region,
-                                     System.Random rng, int nothingWeight = 30)
+        // 방에 해당하는 이벤트를 찾는다. 없으면 null(=평범한 하루).
+        public static EventData FindForRoom(IList<EventData> events, string room)
         {
-            var pool = new List<EventData>();
-            var weights = new List<float>();
-
-            foreach (var e in all)
-            {
-                if (e == null || e.probability <= 0) continue;
-
-                bool include;
-                switch (e.eventType)
-                {
-                    case "일반": include = true; break;
-                    case "아이템": include = HeldMatches(e.relatedItemId, heldItemNames); break;
-                    case "특정지역": include = !string.IsNullOrEmpty(region) && e.region == region; break;
-                    default: include = true; break;
-                }
-                if (!include) continue;
-
-                pool.Add(e);
-                weights.Add(e.probability);
-            }
-
-            float total = nothingWeight;
-            for (int i = 0; i < weights.Count; i++) total += weights[i];
-            if (total <= 0) return null;
-
-            float r = (float)(rng.NextDouble() * total);
-            for (int i = 0; i < pool.Count; i++)
-            {
-                if (r < weights[i]) return pool[i];
-                r -= weights[i];
-            }
-            return null; // 무이벤트
+            if (events == null || string.IsNullOrEmpty(room)) return null;
+            foreach (var e in events)
+                if (e != null && e.region == room) return e;
+            return null;
         }
 
-        // relatedItemId가 자연어("방독면 / 마스크")라 보유 아이템 '이름'이 포함되는지로 매칭(임시).
-        // 추후 아이템 ID 기반으로 교체 권장.
-        static bool HeldMatches(string relatedItemId, ICollection<string> held)
+        // 방의 이벤트 중 하나를 랜덤으로 (어떤 이벤트가 뜰지만 랜덤, 결과는 선택지/아이템으로 확정).
+        public static EventData PickRandomForRoom(IList<EventData> events, string room, System.Random rng)
         {
-            if (string.IsNullOrEmpty(relatedItemId) || held == null) return false;
-            foreach (var h in held)
-                if (!string.IsNullOrEmpty(h) && relatedItemId.Contains(h)) return true;
+            var matches = new List<EventData>();
+            if (events != null)
+                foreach (var e in events)
+                    if (e != null && e.region == room) matches.Add(e);
+            if (matches.Count == 0) return null;
+            return matches[rng.Next(matches.Count)];
+        }
+
+        // 보유 아이템 이름이 relatedItemId에 들어 있으면 보유로 판정.
+        public static bool HasRequiredItem(EventData ev, ICollection<string> heldNames)
+        {
+            if (ev == null || string.IsNullOrEmpty(ev.relatedItemId) || heldNames == null) return false;
+            foreach (var h in heldNames)
+                if (!string.IsNullOrEmpty(h) && ev.relatedItemId.Contains(h)) return true;
             return false;
         }
     }

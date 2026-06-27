@@ -12,28 +12,36 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6aa2a7afbc13e824d869983204d074bc, type: 3}
   m_Name: EVT-G004
   m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.EventData
+  dayMin: 1
+  dayMax: 99
+  endingId: 
+  situation: 
+  choices: []
+  objectId: 
+  description: 
   eventId: EVT-G004
-  eventName: "\uC5EC\uC9C4 \uBC1C\uC0DD"
+  eventName: EVT-G004
   eventType: "\uC77C\uBC18"
   eventCategory: 
-  probability: 9
+  probability: 0
   hasBranch: 
   region: 
   regionEntryCondition: 
   regionSpecialEffect: 
-  relatedItemId: '-'
-  itemOwnedResult: '-'
-  itemNotOwnedResult: '-'
-  branchAResult: "\uC794\uD574\uB97C \uD53C\uD574 \uC2E0\uC18D\uD788 \uB300\uD53C.
-    \uAC70\uC810 \uC18C\uD3ED \uC190\uC0C1."
-  branchBResult: "\uB300\uD53C \uC2E4\uD328. \uC794\uD574\uC5D0 \uB9DE\uC544 \uBD80\uC0C1
-    \uBC0F \uAC70\uC810 \uC190\uC0C1."
+  relatedItemId: 
+  itemOwnedResult: 
+  itemNotOwnedResult: 
+  branchAResult: 
+  branchBResult: 
   foodWaterChange: 0
   weaponAmmoChange: 0
   moraleChange: 0
   medicalSupplyChange: 0
+  failFoodWater: 0
+  failMorale: 0
+  failMedical: 0
   statusEffect: "\uBD80\uC0C1"
-  statusDuration: 3
-  statusModifier: "\uBD80\uC0C1: \uC774\uB3D9 \uC774\uBCA4\uD2B8 \uD655\uB960 -10%"
-  difficulty: B
-  note: "\uBD80\uC0C1 \uC911 \uBC1C\uC0DD \uC2DC \uC911\uC0C1\uC73C\uB85C \uC545\uD654"
+  statusDuration: 0
+  statusModifier: 
+  difficulty: 
+  note: 

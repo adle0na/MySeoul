@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace SeoulLast
 {
-    // 아이템 정의: 모양(셀 오프셋) + 색
+    // 아이템 정의: 모양(셀 오프셋) + 색 + 게임플레이(내구도/회복)
     public class ItemDef
     {
         public string Id;
@@ -12,11 +12,16 @@ namespace SeoulLast
         public Color Color;
         public List<Vector2Int> Cells; // (x=col, y=row), top-left 기준 정규화
 
+        public int MaxUses = 1;        // 내구도(도구) 또는 사용 횟수(회복=1)
+        public int RecoverStat = -1;   // -1=도구, 0허기/1수분/2건강/3기운
+        public int RecoverAmt = 0;     // 회복량
+
         public ItemDef(string id, string name, Color color, List<Vector2Int> cells)
         {
             Id = id; Name = name; Color = color; Cells = cells;
         }
 
+        public bool IsRecovery => RecoverStat >= 0;
         public int Width => Cells.Max(c => c.x) + 1;
         public int Height => Cells.Max(c => c.y) + 1;
     }
@@ -27,26 +32,42 @@ namespace SeoulLast
 
         static Vector2Int V(int x, int y) => new Vector2Int(x, y);
 
-        static void Add(string id, string name, Color c, params Vector2Int[] cells)
+        // 도구: 내구도 N회
+        static void Tool(string id, string name, Color c, int maxUses, params Vector2Int[] cells)
         {
-            All[id] = new ItemDef(id, name, c, cells.ToList());
+            All[id] = new ItemDef(id, name, c, cells.ToList()) { MaxUses = maxUses };
+        }
+        // 회복 소모품: stat(0허기/1수분/2건강/3기운) +amt, 1회
+        static void Recover(string id, string name, Color c, int stat, int amt, params Vector2Int[] cells)
+        {
+            All[id] = new ItemDef(id, name, c, cells.ToList()) { MaxUses = 1, RecoverStat = stat, RecoverAmt = amt };
         }
 
         static ItemDatabase()
         {
-            Add("lighter",    "라이터",   new Color(0.92f, 0.62f, 0.22f), V(0, 0));                     // 1x1
-            Add("flashlight", "손전등",   new Color(0.95f, 0.88f, 0.40f), V(0, 0), V(0, 1));            // 1x2
-            Add("rope",       "밧줄",     new Color(0.62f, 0.52f, 0.36f), V(0, 0), V(1, 0));            // 2x1
-            Add("axe",        "도끼",     new Color(0.74f, 0.34f, 0.28f), V(0, 0), V(0, 1), V(1, 1));   // ㄱ자
-            Add("food",       "통조림",   new Color(0.85f, 0.76f, 0.32f), V(0, 0));                     // 1x1
-            Add("medkit",     "구급상자", new Color(0.90f, 0.32f, 0.36f), V(0,0), V(1,0), V(0,1), V(1,1)); // 2x2
-            Add("mask",       "방독면",   new Color(0.52f, 0.57f, 0.62f), V(0, 0));                     // 1x1
-            Add("radio",      "무전기",   new Color(0.30f, 0.80f, 0.52f), V(0,0), V(1,0), V(0,1), V(1,1)); // 2x2 (히든 엔딩)
+            // 도구(내구도)
+            Tool("lighter",    "라이터",   new Color(0.92f, 0.62f, 0.22f), 3, V(0, 0));                     // 1x1
+            Tool("flashlight", "손전등",   new Color(0.95f, 0.88f, 0.40f), 3, V(0, 0), V(0, 1));            // 1x2
+            Tool("rope",       "밧줄",     new Color(0.62f, 0.52f, 0.36f), 2, V(0, 0), V(1, 0));            // 2x1
+            Tool("axe",        "도끼",     new Color(0.74f, 0.34f, 0.28f), 4, V(0, 0), V(0, 1), V(1, 1));   // ㄱ자
+            Tool("mask",       "방독면",   new Color(0.52f, 0.57f, 0.62f), 2, V(0, 0));                     // 1x1
+            Tool("radio",      "무전기",   new Color(0.30f, 0.80f, 0.52f), 5, V(0,0), V(1,0), V(0,1), V(1,1)); // 2x2
+            // 회복 소모품
+            Recover("food",   "통조림",   new Color(0.85f, 0.76f, 0.32f), 0, 40, V(0, 0));                 // 1x1
+            Recover("water",  "생수",     new Color(0.30f, 0.70f, 0.95f), 1, 40, V(0, 0));                 // 1x1
+            Recover("medkit", "구급상자", new Color(0.90f, 0.32f, 0.36f), 2, 45, V(0,0), V(1,0), V(0,1), V(1,1)); // 2x2
+            Recover("stim",   "각성제",   new Color(0.80f, 0.45f, 0.85f), 3, 40, V(0, 0));                 // 1x1
         }
 
         public static ItemDef Get(string id)
         {
             return All.TryGetValue(id, out var d) ? d : null;
+        }
+
+        public static ItemDef GetByName(string name)
+        {
+            foreach (var d in All.Values) if (d.Name == name) return d;
+            return null;
         }
     }
 
@@ -55,15 +76,30 @@ namespace SeoulLast
     {
         public ItemDef Def;
         public Vector2Int Origin;
-        public PlacedItem(ItemDef def) { Def = def; }
+        public int Uses;   // 남은 내구도/사용 횟수
+        public PlacedItem(ItemDef def) { Def = def; Uses = def.MaxUses; }
         public IEnumerable<Vector2Int> AbsCells() => Def.Cells.Select(c => Origin + c);
     }
 
     // 4x4 가방 점유 모델
     public class BagModel
     {
-        public int Width = 6, Height = 5;
+        public int Width = 6, Height = 6;
         public List<PlacedItem> Placed = new List<PlacedItem>();
+
+        // FullGrid=true면 전체 칸 사용(고정 그리드). false면 단계별 중앙 활성(구 프로토타입).
+        public bool FullGrid = false;
+
+        // 가방 5단계: 1=중앙 2x2, 2=3x3, 3=4x4, 4=5x5, 5=6x6 (나머지는 딤드=배치불가)
+        public int Stage = 1;
+        public int ActiveSize => Mathf.Clamp(Stage + 1, 2, 6);
+        public int ActiveOffset => (6 - ActiveSize) / 2;
+        public bool IsActiveCell(Vector2Int c)
+        {
+            if (FullGrid) return InBounds(c);
+            int o = ActiveOffset, s = ActiveSize;
+            return c.x >= o && c.x < o + s && c.y >= o && c.y < o + s;
+        }
 
         bool InBounds(Vector2Int c) => c.x >= 0 && c.x < Width && c.y >= 0 && c.y < Height;
 
@@ -84,7 +120,7 @@ namespace SeoulLast
             foreach (var cell in def.Cells)
             {
                 var c = origin + cell;
-                if (!InBounds(c) || occ.Contains(c)) return false;
+                if (!InBounds(c) || !IsActiveCell(c) || occ.Contains(c)) return false;
             }
             return true;
         }

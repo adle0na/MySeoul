@@ -12,31 +12,36 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6aa2a7afbc13e824d869983204d074bc, type: 3}
   m_Name: EVT-L002
   m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.EventData
+  dayMin: 1
+  dayMax: 99
+  endingId: 
+  situation: 
+  choices: []
+  objectId: 
+  description: 
   eventId: EVT-L002
-  eventName: "\uAD70\uC0AC \uAE30\uC9C0 \uBB34\uAE30\uACE0"
+  eventName: EVT-L002
   eventType: "\uD2B9\uC815\uC9C0\uC5ED"
   eventCategory: 
-  probability: 5
+  probability: 0
   hasBranch: 
   region: "\uC74C\uC545\uC2E4"
   regionEntryCondition: 
-  regionSpecialEffect: "\uBB34\uAE30\xB7\uD0C4\uC57D \uBC1C\uACAC \uD655\uB960 +50%"
-  relatedItemId: "\uD574\uD0B9 \uB3C4\uAD6C / \uD3ED\uBC1C\uBB3C"
-  itemOwnedResult: "\uBB34\uAE30\uACE0 \uD574\uC81C \uC131\uACF5, \uACE0\uAE09 \uBB34\uAE30
-    \uD655\uBCF4"
-  itemNotOwnedResult: "\uD3ED\uBC1C\uBB3C \uAC15\uC81C \uC9C4\uC785, \uC18C\uC74C\uC73C\uB85C
-    \uC870\uC6B0 \uBC1C\uC0DD"
-  branchAResult: "\uB3C4\uAD6C\uB85C \uBB34\uAE30\uACE0\uB97C \uD574\uC81C\uD55C\uB2E4.
-    \uACE0\uAE09 \uBB34\uAE30 \uD655\uBCF4."
-  branchBResult: "\uD3ED\uBC1C\uBB3C\uB85C \uAC15\uC81C \uC9C4\uC785. \uC18C\uC74C\uC5D0
-    \uC801\uC774 \uBAB0\uB824\uC628\uB2E4."
+  regionSpecialEffect: 
+  relatedItemId: 
+  itemOwnedResult: 
+  itemNotOwnedResult: 
+  branchAResult: 
+  branchBResult: 
   foodWaterChange: 0
   weaponAmmoChange: 0
   moraleChange: 0
   medicalSupplyChange: 0
+  failFoodWater: 0
+  failMorale: 0
+  failMedical: 0
   statusEffect: "\uC5C6\uC74C"
   statusDuration: 0
-  statusModifier: '-'
-  difficulty: A
-  note: "\uC18C\uC74C \uBC1C\uC0DD \uC2DC \uC989\uC2DC \uC870\uC6B0 \uC774\uBCA4\uD2B8
-    \uC5F0\uACC4"
+  statusModifier: 
+  difficulty: 
+  note: 
