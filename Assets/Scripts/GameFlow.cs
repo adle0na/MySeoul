@@ -65,6 +65,7 @@ namespace SeoulLast
         RectTransform gridRect, slotsRect, trayRect, trashZone, dragLayer;
         Button useBtn; TextMeshProUGUI useBtnLabel; PlacedItem selectedItem;
         System.Action bagOnDone;        // 가방 정비 완료 시 동작(맥락별)
+        SeoulLast.ScreenSpeedTransition transition;
 
         // ---- Explore 화면 (사이드스크롤 연출) ----
         TextMeshProUGUI dayText;                   // 상단바 "DAY n · 장소"
@@ -74,6 +75,9 @@ namespace SeoulLast
         Image charImg;                  // 메인 캐릭터(스프라이트, 추후 Spine 교체)
         Image itemImg;                  // 다가오는 아이템
         RectTransform eventCard;        // 하단 이벤트 카드
+        GameObject cardBGChoice;          // 선택지 버튼 배경
+        GameObject cardBGResult;          // 결과 텍스트 배경
+        GameObject cardBGBase;            // 기본 배경 (Choice/Result 꺼졌을 때)
         Button bagToggleBtn;            // 하단 가방 토글
         bool walking;                   // 걷는 중(배경 스크롤)
         float itemMeetX;                // 아이템이 멈출 x(캐릭터 위치)
@@ -115,7 +119,10 @@ namespace SeoulLast
             restBody = c.Find("RestPanel/Box/B").GetComponent<TextMeshProUGUI>();
             bagBtnLabel = c.Find("BagPanel/DayStart/Label").GetComponent<TextMeshProUGUI>();
 
-            choiceArea = c.Find("EventPanel/Card/ChoiceArea").GetComponent<RectTransform>();
+            choiceArea    = c.Find("EventPanel/Card/ChoiceArea").GetComponent<RectTransform>();
+            cardBGChoice  = c.Find("EventPanel/Card/CardBG_Choice")?.gameObject;
+            cardBGResult  = c.Find("EventPanel/Card/CardBG_Result")?.gameObject;
+            cardBGBase    = c.Find("EventPanel/Card/CardBG_Base")?.gameObject;
             choiceButtonPrefab = Resources.Load<GameObject>("Prefabs/ChoiceButton");
             eventCard = c.Find("EventPanel/Card").GetComponent<RectTransform>();
             dayText = c.Find("EventPanel/TopBar/DayText").GetComponent<TextMeshProUGUI>();
@@ -181,7 +188,7 @@ namespace SeoulLast
         {
             stageNo = 0; eventsThisStage = 0; stageRegion = "";
             forcedNextId = FindEvent("EVT-O001") != null ? "EVT-O001" : "";
-            PlayNextEvent();
+            TransitionThenPlay();
         }
 
         // 가방 정비 화면. onDone = 완료 버튼 동작, label = 버튼 문구
@@ -346,6 +353,15 @@ namespace SeoulLast
         }
 
         // 다음 이벤트 재생 (forcedNextId 또는 "random" 해석). 정해진 게 없으면 휴식.
+        // 화면 전환 연출 후 다음 이벤트 진행
+        void TransitionThenPlay()
+        {
+            if (transition != null)
+                transition.Play(onCovered: PlayNextEvent);
+            else
+                PlayNextEvent();
+        }
+
         void PlayNextEvent()
         {
             tray.Clear();
@@ -373,6 +389,7 @@ namespace SeoulLast
         void RenderDialog()
         {
             ClearChoices();
+            SetCardBG(false, false);
             eventTitle.text = curDialog != null && !string.IsNullOrEmpty(curDialog.spawnItemId) ? "무언가를 발견했다!" : "";
             string body = string.IsNullOrWhiteSpace(curDialog.description)
                 ? $"<color=#888888>(임시) {curEvent.eventType}{(string.IsNullOrEmpty(curEvent.region) ? "" : " · " + curEvent.region)} — 대화 준비 중</color>"
@@ -508,6 +525,7 @@ namespace SeoulLast
         // 대화 분기 선택
         void OnDialogBranch(EventChoice c)
         {
+            SetCardBG(false, true);
             if (!string.IsNullOrEmpty(c.requiredItem)) ConsumeUse(c.requiredItem);
             ApplyNewState(c.newState);
 
@@ -592,7 +610,7 @@ namespace SeoulLast
                 if (string.IsNullOrEmpty(nextId)) { ShowRest(); return; }
             }
             forcedNextId = nextId;
-            PlayNextEvent();
+            TransitionThenPlay();
         }
 
         // 한 스테이지(5이벤트) 완료 → 휴식
@@ -610,7 +628,7 @@ namespace SeoulLast
             stageRegion = region;
             eventsThisStage = 0;
             forcedNextId = "random";   // 첫 이벤트는 지역+일반 풀에서 랜덤
-            PlayNextEvent();
+            TransitionThenPlay();
         }
 
         void ShowMap()
@@ -780,10 +798,20 @@ namespace SeoulLast
         string L(int i, int d) => d == 0 ? "" : $"\n{StatNormal[i]} {(d > 0 ? "악화" : "회복")} ({(d > 0 ? "+" : "") + d})";
 
         // ---------- 선택지 ----------
+        // CardBG 상태 일괄 제어
+        void SetCardBG(bool choice, bool result)
+        {
+            if (cardBGChoice != null) cardBGChoice.SetActive(choice);
+            if (cardBGResult != null) cardBGResult.SetActive(result);
+            // Base: 둘 다 꺼졌을 때만 ON
+            if (cardBGBase   != null) cardBGBase.SetActive(!choice && !result);
+        }
+
         void ClearChoices() { choiceCount = 0; for (int i = choiceArea.childCount - 1; i >= 0; i--) Destroy(choiceArea.GetChild(i).gameObject); }
 
         void AddChoice(EventChoice c, int index, bool enabled, bool gatedMissing)
         {
+            SetCardBG(true, false);
             string lbl = gatedMissing ? $"{c.label}   (필요: {DisplayReq(c.requiredItem)})" : c.label;
             var go = (GameObject)UnityEngine.Object.Instantiate(choiceButtonPrefab, choiceArea);
             go.name = "choice" + index;
@@ -801,6 +829,7 @@ namespace SeoulLast
         void AddConfirm(UnityEngine.Events.UnityAction onConfirm)
         {
             choiceCount = 0;
+            SetCardBG(true, false);
             var go = (GameObject)UnityEngine.Object.Instantiate(choiceButtonPrefab, choiceArea);
             go.name = "Confirm";
             UIFactory.SetRect(go.GetComponent<RectTransform>(), (920 - 460) / 2, 0, 460, 120);
