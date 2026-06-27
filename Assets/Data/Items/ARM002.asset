@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: ARM002
   m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.ItemData
   itemId: ARM002
-  itemName: "\uBC29\uD0C4 \uC870\uB07C"
+  itemName: 
   itemType: "\uBC29\uC5B4\uAD6C"
   durability: 200
   description: "\uAD70\uC6A9 \uBC29\uD0C4 \uC18C\uC7AC\uB85C \uC81C\uC791\uB41C \uC870\uB07C.

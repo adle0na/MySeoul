@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: WPN002
   m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.ItemData
   itemId: WPN002
-  itemName: "\uAC1C\uC870 \uC0F7\uAC74"
+  itemName: 
   itemType: "\uBB34\uAE30"
   durability: 120
   description: "\uC0B0\uD0C4\uC744 \uBC1C\uC0AC\uD558\uB294 \uAC1C\uC870 \uCD1D\uAE30.

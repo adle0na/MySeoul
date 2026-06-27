@@ -10,9 +10,10 @@ namespace SeoulLast
     // 엔딩 A/B/C 시차 + 정답 3연속, 죽으면 리셋(컷씬 스킵).
     public class GameFlow : MonoBehaviour, IBagHost
     {
-        [Header("이벤트 / 아이템 데이터")]
+        [Header("이벤트 / 대화 / 아이템 데이터")]
         [SerializeField] EventData[] events;
-        [SerializeField] ItemData[] items;   // 시트 아이템 (이벤트 등장 물건 지급용)
+        [SerializeField] DialogData[] dialogs;   // 대화 노드(event_dialog 시트)
+        [SerializeField] ItemData[] items;       // 시트 아이템 (대화 등장 물건 지급용)
 
         const float W = 1080f, H = 1920f;
         const int GRID_W = 6, GRID_H = 6;   // 그리드 최대 크기(6x6). 시작 활성영역은 중앙 2x2(Stage)
@@ -50,7 +51,8 @@ namespace SeoulLast
         int activeEnding = -1; // 현재 진행 중인 엔딩 인덱스(-1=없음)
 
         EventData curEvent;
-        string forcedNextId = ""; // 시트 NextEventIdByX로 지정된 다음 이벤트(그래프 이동)
+        DialogData curDialog;     // 현재 대화 노드
+        string forcedNextId = ""; // 다음 이벤트("random" 또는 EventId)
 
         // ---- UI ----
         GameObject startPanel, cutscenePanel, bagPanel, eventPanel, endingPanel, gameOverPanel, restPanel, mapPanel;
@@ -307,40 +309,52 @@ namespace SeoulLast
             if (id == "random") id = ResolveRandom();
             curEvent = string.IsNullOrEmpty(id) ? null : FindEvent(id);
             if (curEvent == null) { ShowRest(); return; }
-            RenderEvent();
+            StartDialog(curEvent.startDialogId);   // 이벤트의 시작 대화부터
         }
 
-        void RenderEvent()
+        // 대화 노드 시작 ("Done"/없음/빈 노드면 이벤트 종료)
+        void StartDialog(string dialogId)
+        {
+            if (string.IsNullOrEmpty(dialogId) || dialogId == "Done") { EndEvent(); return; }
+            curDialog = FindDialog(dialogId);
+            if (curDialog == null || IsEmptyDialog(curDialog)) { EndEvent(); return; }
+            RenderDialog();
+        }
+
+        bool IsEmptyDialog(DialogData d)
+            => string.IsNullOrWhiteSpace(d.description) && (d.choices == null || d.choices.Length == 0);
+
+        void RenderDialog()
         {
             ClearChoices();
-            bool isEnding = !string.IsNullOrEmpty(curEvent.endingId);
             eventTitle.text = stageNo == 0
                 ? "온보딩"
                 : $"스테이지 {stageNo}" + (string.IsNullOrEmpty(stageRegion) ? "" : " · " + stageRegion)
                   + $" · {Mathf.Min(eventsThisStage + 1, STAGE_LEN)}/{STAGE_LEN}";
-            string head = string.IsNullOrEmpty(curEvent.objectId) ? curEvent.eventName : $"{curEvent.eventName}  ({curEvent.objectId})";
-            // 빈 이벤트는 임시 플레이스홀더로 동작 확인용 표시 (시트 내용 채우면 자동으로 실제 내용 노출)
-            string body = string.IsNullOrWhiteSpace(curEvent.situation)
-                ? $"<color=#888888>(임시) {curEvent.eventType}{(string.IsNullOrEmpty(curEvent.region) ? "" : " · " + curEvent.region)} 이벤트 — 내용 준비 중</color>\n\n터치해 다음으로 진행하세요."
-                : curEvent.situation;
-            string statusTag = string.IsNullOrWhiteSpace(curEvent.statusEffect) || curEvent.statusEffect == "없음"
-                ? "" : $"\n\n<color=#c8a060>유발: {curEvent.statusEffect}</color>";
-            eventBody.text = $"<b>{head}</b>\n\n{body}{statusTag}";
+            string body = string.IsNullOrWhiteSpace(curDialog.description)
+                ? $"<color=#888888>(임시) {curEvent.eventType}{(string.IsNullOrEmpty(curEvent.region) ? "" : " · " + curEvent.region)} — 대화 준비 중</color>"
+                : curDialog.description;
+            eventBody.text = body;
 
-            int shown = 0; bool gatedMissing = false;
-            if (curEvent.choices != null)
-                for (int i = 0; i < curEvent.choices.Length; i++)
+            // label 있는 분기 = 버튼 / label 빈 분기(Empty) = 자동 진행
+            int shown = 0; EventChoice auto = null;
+            if (curDialog.choices != null)
+                for (int i = 0; i < curDialog.choices.Length; i++)
                 {
-                    var c = curEvent.choices[i];
+                    var c = curDialog.choices[i];
+                    if (string.IsNullOrEmpty(c.label)) { if (auto == null) auto = c; continue; }
                     bool needItem = !string.IsNullOrEmpty(c.requiredItem);
                     bool has = !needItem || HasItem(c.requiredItem);
-                    if (needItem && !has) gatedMissing = true;
                     AddChoice(c, i, has, needItem && !has);
                     shown++;
                 }
 
-            if (shown == 0) AddConfirm(() => AfterEvent(null));      // 분기 없음 → 터치하면 다음 이벤트
-            else if (!isEnding && gatedMissing) AddGambleAndGiveUp(); // 아이템 부족 시에만 도박/포기
+            if (shown == 0)
+            {
+                // 선택 버튼 없음 → 터치(확인) 시 자동 분기(Empty)의 다음 대화로, 없으면 이벤트 종료
+                var a = auto;
+                AddConfirm(() => { if (a != null) OnDialogBranch(a); else EndEvent(); });
+            }
             Only(eventPanel);
         }
 
@@ -358,19 +372,31 @@ namespace SeoulLast
             return pool.Count == 0 ? "" : pool[rng.Next(pool.Count)].eventId;
         }
 
-        // 이벤트 결과 후 진행 (가방 열림 > 지정 다음/랜덤 > 휴식)
-        void AfterEvent(EventChoice c)
+        // 이벤트(대화 그래프) 종료 → 스테이지 진행(다음 이벤트/휴식)
+        void EndEvent() { AfterEventResolve(""); }
+
+        // 대화 분기 선택
+        void OnDialogBranch(EventChoice c)
         {
-            if (curEvent != null) ApplyNewState(curEvent.statusEffect);  // 이벤트 유발 상태이상 적용
-            string nextId = (c != null && !string.IsNullOrEmpty(c.nextEventId)) ? c.nextEventId : "";
-            if (c != null && c.opensInventory)
+            if (!string.IsNullOrEmpty(c.requiredItem)) ConsumeUse(c.requiredItem);
+            ApplyNewState(c.newState);
+
+            string next = c.nextEventId;   // 다음 대화 id ("Done"/빈값 = 이벤트 종료)
+            if (c.opensInventory)
             {
-                // 등장 물건(EventObjectID) 지급 → 트레이(드래그로 그리드에 배치)
-                if (curEvent != null) GrantObjectItem(curEvent.objectId);
-                ShowBag(() => AfterEventResolve(nextId), "계속 →");
+                // 현재 대화의 등장 물건(DialogItemId) 지급 → 트레이(드래그로 그리드에 배치)
+                GrantObjectItem(curDialog != null ? curDialog.spawnItemId : "");
+                ShowBag(() => StartDialog(next), "계속 →");
             }
             else
-                AfterEventResolve(nextId);
+                StartDialog(next);
+        }
+
+        DialogData FindDialog(string id)
+        {
+            if (dialogs == null || string.IsNullOrEmpty(id)) return null;
+            foreach (var d in dialogs) if (d != null && d.dialogId == id) return d;
+            return null;
         }
 
         // ---------- 시트 아이템 지급 ----------
@@ -483,66 +509,6 @@ namespace SeoulLast
             return list[Mathf.Min(endStreak[e], list.Count - 1)];
         }
 
-        void OnChoice(EventChoice c)
-        {
-            status[0] = Clamp(status[0] + c.hunger);
-            status[1] = Clamp(status[1] + c.thirst);
-            status[2] = Clamp(status[2] + c.pain);
-            status[3] = Clamp(status[3] + c.fatigue);
-
-            // 보상/분실
-            string extra = "";
-            if (!string.IsNullOrEmpty(c.rewardItem))
-            {
-                AddItem(c.rewardItem);
-                extra += $"\n\n<b>[{c.rewardItem} 획득]</b>  (다음 가방 정비에서 배치/정리)";
-            }
-            if (c.loseRandomItem)
-            {
-                var all = new List<PlacedItem>(bag.Placed); all.AddRange(tray);
-                if (all.Count > 0)
-                {
-                    var p = all[rng.Next(all.Count)];
-                    bag.RemoveFromBag(p); tray.Remove(p);
-                    extra += $"\n\n<color=#cc8888>[{p.Def.Name}을(를) 잃어버렸다]</color>";
-                }
-            }
-            if (!string.IsNullOrEmpty(c.requiredItem)) ConsumeUse(c.requiredItem);
-
-            // 시트: 선택 시 상태 변경
-            ApplyNewState(c.newState);
-
-            bool isEnding = curEvent != null && !string.IsNullOrEmpty(curEvent.endingId);
-            if (isEnding)
-            {
-                int e = System.Array.IndexOf(EndIds, curEvent.endingId);
-                if (e >= 0)
-                {
-                    if (c.correct)
-                    {
-                        endStreak[e]++;
-                        if (endStreak[e] >= 3) { lastResult = c.resultText; ShowEnding(e); return; }
-                    }
-                    else { endVoided[e] = true; activeEnding = -1; }
-                }
-            }
-
-            lastResult = (curEvent != null ? $"[{curEvent.eventName}] " : "") + c.resultText;
-            ClearChoices();
-            var cc = c;
-
-            // 결과 텍스트/효과가 없으면 결과 화면을 건너뛰고 바로 다음으로 진행
-            string resultBody = (c.resultText ?? "") + ChangeText(c) + extra;
-            if (string.IsNullOrWhiteSpace(resultBody))
-            {
-                AfterEvent(cc);
-                return;
-            }
-            if (c.opensInventory) resultBody += "\n\n<color=#a0d0e0>[가방을 열어 정리하세요]</color>";
-            eventBody.text = resultBody;
-            AddConfirm(() => AfterEvent(cc));   // 진행: 가방 열림 > 지정 다음/랜덤 > 휴식
-        }
-
         // 상태 임계치(Level과 일치): 주의 40, 위험 70
         const int T_CAUTION = 40, T_DANGER = 70;
 
@@ -557,7 +523,7 @@ namespace SeoulLast
             foreach (var tok in s.Split(';', ','))
             {
                 var t = tok.Trim();
-                if (t.Length == 0 || t == "없음") continue;
+                if (t.Length == 0 || t == "없음" || t.Equals("Empty", System.StringComparison.OrdinalIgnoreCase)) continue;
 
                 // (1) 컨디션 부여 (임계치까지만, 이미 그 상태면 변화 없음)
                 if (TryApplyCondition(t)) continue;
@@ -669,52 +635,12 @@ namespace SeoulLast
             Text t; var b = UIFactory.Button(choiceArea, "choice" + index, lbl, col, null, out t);
             t.fontSize = 27;
             b.interactable = enabled;
-            if (enabled) { var cc = c; b.onClick.AddListener(() => OnChoice(cc)); }
+            if (enabled) { var cc = c; b.onClick.AddListener(() => OnDialogBranch(cc)); }
             UIFactory.SetRect(b.GetComponent<RectTransform>(), 0, ChoiceY(), 920, 110);
         }
 
         int choiceCount;
         int ChoiceY() { int y = choiceCount * 122; choiceCount++; return y; }
-
-        void AddGambleAndGiveUp()
-        {
-            // 도전(반반) — 도구 없이도 시도
-            Text gl; var gb = UIFactory.Button(choiceArea, "gamble", "맨몸으로 도전한다 (성공 반반)", new Color(0.55f, 0.45f, 0.25f), Gamble, out gl);
-            gl.fontSize = 26;
-            UIFactory.SetRect(gb.GetComponent<RectTransform>(), 0, ChoiceY(), 920, 110);
-            // 포기
-            Text pl; var pb = UIFactory.Button(choiceArea, "giveup", "포기한다", new Color(0.4f, 0.4f, 0.42f), GiveUp, out pl);
-            pl.fontSize = 26;
-            UIFactory.SetRect(pb.GetComponent<RectTransform>(), 0, ChoiceY(), 920, 110);
-        }
-
-        void Gamble()
-        {
-            bool win = rng.Next(100) < 50;
-            ClearChoices();
-            if (win)
-            {
-                status[2] = Clamp(status[2] - 5);
-                lastResult = "맨몸으로 부딪쳐 운 좋게 넘겼다.";
-                eventBody.text = "운이 좋았다. 큰 탈 없이 해냈다.\n건강 회복 (-5)";
-            }
-            else
-            {
-                status[2] = Clamp(status[2] + 20);
-                lastResult = "무리하게 덤볐다가 다쳤다.";
-                eventBody.text = "무리했다. 다쳤다.\n건강 악화 (+20)";
-            }
-            AddConfirm(() => AfterEvent(null));
-        }
-
-        void GiveUp()
-        {
-            ClearChoices();
-            status[3] = Clamp(status[3] + 6);
-            lastResult = "위험을 피해 그냥 물러났다.";
-            eventBody.text = "포기하고 물러났다.\n기운 악화 (+6)";
-            AddConfirm(() => AfterEvent(null));
-        }
 
         void AddConfirm(UnityEngine.Events.UnityAction onConfirm)
         {

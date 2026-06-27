@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: SPL002
   m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.ItemData
   itemId: SPL002
-  itemName: "EMP \uC7A5\uCE58"
+  itemName: 
   itemType: "\uD2B9\uC218"
   durability: -1
   description: "\uC804\uC790 \uC7A5\uCE58\uB97C \uC77C\uC2DC\uC801\uC73C\uB85C \uBB34\uB825\uD654\uD558\uB294

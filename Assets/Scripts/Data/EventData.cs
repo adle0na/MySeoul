@@ -28,7 +28,11 @@ namespace SeoulLast.Data
     [CreateAssetMenu(fileName = "Event_", menuName = "NoPainYesGame/Event Data")]
     public class EventData : ScriptableObject
     {
-        [Header("발생 시점 / 엔딩")]
+        [Header("발생 / 대화 (신 구조)")]
+        public int minLevel;            // EventMinLv (접근 가능 최소 레벨)
+        public string startDialogId;    // EventDialogId (시작 대화 id)
+
+        [Header("발생 시점 / 엔딩 (구 구조, 미사용)")]
         public int dayMin = 1;          // 이 이벤트가 뜰 수 있는 최소 날짜
         public int dayMax = 99;         // 최대 날짜
         public string endingId = "";    // "" = 일반 이벤트, "A"/"B"/"C" = 해당 엔딩 체인

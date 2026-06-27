@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: RES003
   m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.ItemData
   itemId: RES003
-  itemName: "\uD1B5\uC870\uB9BC \uC2DD\uD488"
+  itemName: 
   itemType: "\uC790\uC6D0"
   durability: -1
   description: "\uC885\uB9D0 \uC774\uC804 \uC0DD\uC0B0\uB41C \uD1B5\uC870\uB9BC.

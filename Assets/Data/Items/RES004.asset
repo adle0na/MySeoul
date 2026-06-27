@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: RES004
   m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.ItemData
   itemId: RES004
-  itemName: "\uAE08\uC18D \uACE0\uCCA0"
+  itemName: 
   itemType: "\uC790\uC6D0"
   durability: -1
   description: "\uAC01\uC885 \uC81C\uC791\uC5D0 \uC0AC\uC6A9\uB418\uB294 \uAE08\uC18D

@@ -13,12 +13,15 @@ namespace SeoulLast.EditorTools
     {
         string itemCsvUrl;
         string eventCsvUrl;
+        string dialogCsvUrl;
         string csvFolder = "Assets/Data/CSV";
         string itemAssetFolder = "Assets/Data/Items";
         string eventAssetFolder = "Assets/Data/Events";
+        string dialogAssetFolder = "Assets/Data/Dialogs";
 
         const string KeyItemUrl = "NPYG_ItemCsvUrl";
         const string KeyEventUrl = "NPYG_EventCsvUrl";
+        const string KeyDialogUrl = "NPYG_DialogCsvUrl";
 
         [MenuItem("NoPainYesGame/Data Tools")]
         static void Open() => GetWindow<DataToolsWindow>("Data Tools");
@@ -27,6 +30,7 @@ namespace SeoulLast.EditorTools
         {
             itemCsvUrl = EditorPrefs.GetString(KeyItemUrl, "");
             eventCsvUrl = EditorPrefs.GetString(KeyEventUrl, "");
+            dialogCsvUrl = EditorPrefs.GetString(KeyDialogUrl, "");
         }
 
         void OnGUI()
@@ -41,15 +45,18 @@ namespace SeoulLast.EditorTools
 
             itemCsvUrl = EditorGUILayout.TextField("Item 시트 URL", itemCsvUrl);
             eventCsvUrl = EditorGUILayout.TextField("Event 시트 URL", eventCsvUrl);
+            dialogCsvUrl = EditorGUILayout.TextField("EventDialog 시트 URL", dialogCsvUrl);
             csvFolder = EditorGUILayout.TextField("CSV 저장 폴더", csvFolder);
             itemAssetFolder = EditorGUILayout.TextField("ItemData 에셋 폴더", itemAssetFolder);
             eventAssetFolder = EditorGUILayout.TextField("EventData 에셋 폴더", eventAssetFolder);
+            dialogAssetFolder = EditorGUILayout.TextField("DialogData 에셋 폴더", dialogAssetFolder);
 
             EditorGUILayout.Space(10);
             if (GUILayout.Button("①  구글시트 → 로컬 CSV 최신화", GUILayout.Height(34)))
             {
                 EditorPrefs.SetString(KeyItemUrl, itemCsvUrl);
                 EditorPrefs.SetString(KeyEventUrl, eventCsvUrl);
+                EditorPrefs.SetString(KeyDialogUrl, dialogCsvUrl);
                 DownloadCsvs();
             }
             EditorGUILayout.Space(4);
@@ -58,6 +65,9 @@ namespace SeoulLast.EditorTools
             EditorGUILayout.Space(4);
             if (GUILayout.Button("③  Event.csv → EventData 에셋 생성/갱신", GUILayout.Height(34)))
                 ImportEvents();
+            EditorGUILayout.Space(4);
+            if (GUILayout.Button("④  EventDialog.csv → DialogData 에셋 생성/갱신", GUILayout.Height(34)))
+                ImportDialogs();
         }
 
         void DownloadCsvs()
@@ -66,6 +76,7 @@ namespace SeoulLast.EditorTools
             int ok = 0;
             if (TryDownload(itemCsvUrl, Path.Combine(csvFolder, "Item.csv"))) ok++;
             if (TryDownload(eventCsvUrl, Path.Combine(csvFolder, "Event.csv"))) ok++;
+            if (TryDownload(dialogCsvUrl, Path.Combine(csvFolder, "EventDialog.csv"))) ok++;
             AssetDatabase.Refresh();
             EditorUtility.DisplayDialog("CSV 최신화", $"{ok}개 파일 다운로드 완료.\n폴더: {csvFolder}", "확인");
         }
@@ -231,42 +242,16 @@ namespace SeoulLast.EditorTools
                 bool isNew = ev == null;
                 if (isNew) ev = ScriptableObject.CreateInstance<EventData>();
 
-                // ----- 시트 기본 정보 -----
+                // ----- 신 구조: 이벤트는 메타 + 시작 대화 포인터만 -----
                 ev.eventId = id;
                 ev.eventName = id;                                  // 시트에 이름 컬럼 없음 → Id로
                 ev.eventType = Get(row, col, "EventType");
-                ev.hasBranch = Get(row, col, "EventHasBranch");
+                ev.minLevel = ParseInt(Get(row, col, "EventMinLv"));
                 ev.region = Get(row, col, "EventRegion");
-                ev.objectId = Get(row, col, "EventObjectID");
-                ev.description = Get(row, col, "EventDescription");
-                ev.situation = ev.description;                      // GameFlow가 situation을 표시
-
-                // ----- 분기 A/B/C → choices -----
-                var list = new List<EventChoice>();
-                AddBranch(list, Get(row, col, "EventBranchA"),
-                    Get(row, col, "EventBranchAResult"),
-                    Get(row, col, "EventBranchAOpensInventory"),
-                    Get(row, col, "EventBranchANewState"),
-                    Get(row, col, "NextEventIdByA"));
-                AddBranch(list, Get(row, col, "EventBranchB"),
-                    Get(row, col, "EventBranchBResult"),
-                    Get(row, col, "EventBranchBOpensInventory"),
-                    Get(row, col, "EventBranchBNewState"),
-                    Get(row, col, "NextEventIdByB"));
-                // C 결과 헤더는 시트에 'EventBranchBResult'로 잘못 적혀 있어, EventBranchC 다음 칸을 위치로 읽음
-                int cIdx; string cResult = "";
-                if (col.TryGetValue("EventBranchC", out cIdx)) cResult = At(row, cIdx + 1);
-                AddBranch(list, Get(row, col, "EventBranchC"),
-                    cResult,
-                    Get(row, col, "EventBranchCOpensInventory"),
-                    Get(row, col, "EventBranchCNewState"),
-                    Get(row, col, "NextEventIdByC"));
-                ev.choices = list.ToArray();
-
-                // ----- 유발 상태이상 (마지막 컬럼, 영어 헤더 비어 있음) -----
-                int lastIdx;
-                if (col.TryGetValue("NextEventIdByC", out lastIdx))
-                    ev.statusEffect = At(row, lastIdx + 1);
+                ev.startDialogId = Get(row, col, "EventDialogId").Trim();
+                // 메모 (EventDialogId 다음 칸, 헤더 비어 있음)
+                int dIdx;
+                if (col.TryGetValue("EventDialogId", out dIdx)) ev.note = At(row, dIdx + 1);
 
                 if (isNew) { AssetDatabase.CreateAsset(ev, assetPath); created++; }
                 else { EditorUtility.SetDirty(ev); updated++; }
@@ -277,18 +262,90 @@ namespace SeoulLast.EditorTools
             return new[] { created, updated };
         }
 
-        // 분기 버튼(label)이 비어 있지 않을 때만 choices에 추가
-        static void AddBranch(List<EventChoice> list, string label, string result, string opensInv, string newState, string nextId)
+        // ---------- EventDialog.csv → DialogData ----------
+        void ImportDialogs()
         {
-            if (string.IsNullOrWhiteSpace(label)) return;
+            string csvPath = Path.Combine(csvFolder, "EventDialog.csv");
+            if (!File.Exists(csvPath))
+            {
+                EditorUtility.DisplayDialog("오류", $"{csvPath} 없음.\n먼저 ① 최신화를 실행하세요.", "확인");
+                return;
+            }
+            var res = RunImportDialogs();
+            if (res == null) { EditorUtility.DisplayDialog("오류", "EventDialog.csv에서 'DialogId' 헤더를 찾지 못했습니다.", "확인"); return; }
+            EditorUtility.DisplayDialog("임포트 완료", $"대화 생성 {res[0]}개 / 갱신 {res[1]}개\n폴더: {dialogAssetFolder}", "확인");
+        }
+
+        public int[] RunImportDialogs()
+        {
+            string csvPath = Path.Combine(csvFolder, "EventDialog.csv");
+            if (!File.Exists(csvPath)) return null;
+            Directory.CreateDirectory(dialogAssetFolder);
+
+            var rows = CsvParser.Parse(File.ReadAllText(csvPath));
+            int headerRow = FindHeaderRow(rows, "DialogId");
+            if (headerRow < 0) return null;
+            var col = MapColumns(rows[headerRow]);
+
+            int created = 0, updated = 0;
+            for (int r = headerRow + 1; r < rows.Count; r++)
+            {
+                var row = rows[r];
+                string id = Get(row, col, "DialogId").Trim();
+                if (string.IsNullOrEmpty(id) || id == "string" || id.StartsWith("대화")) continue;
+
+                string assetPath = $"{dialogAssetFolder}/{id}.asset";
+                var d = AssetDatabase.LoadAssetAtPath<DialogData>(assetPath);
+                bool isNew = d == null;
+                if (isNew) d = ScriptableObject.CreateInstance<DialogData>();
+
+                d.dialogId = id;
+                d.spawnItemId = Get(row, col, "DialogItemId").Trim();
+                d.description = Get(row, col, "Description");
+
+                var list = new List<EventChoice>();
+                AddDialogBranch(list, Get(row, col, "BranchA_ItemID"), GetAny(row, col, "BranchA_name", "BranchA_Name"),
+                    Get(row, col, "BranchA_OpensInventory"), Get(row, col, "BranchA_NewState"), Get(row, col, "BranchA_NextEventId"));
+                AddDialogBranch(list, Get(row, col, "BranchB_ItemID"), GetAny(row, col, "BranchB_Name", "BranchB_name"),
+                    Get(row, col, "BranchB_OpensInventory"), Get(row, col, "BranchB_NewState"), Get(row, col, "BranchB_NextEventId"));
+                AddDialogBranch(list, Get(row, col, "BranchC_ItemID"), GetAny(row, col, "BranchC_Name", "BranchC_name"),
+                    Get(row, col, "BranchC_OpensInventory"), Get(row, col, "BranchC_NewState"), Get(row, col, "BranchC_NextEventId"));
+                d.choices = list.ToArray();
+
+                if (isNew) { AssetDatabase.CreateAsset(d, assetPath); created++; }
+                else { EditorUtility.SetDirty(d); updated++; }
+            }
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            return new[] { created, updated };
+        }
+
+        // 대화 분기 추가. 이름이 "Empty"면 버튼 없이 자동 진행(라벨 빈값). 이름·다음 둘 다 없으면 스킵.
+        static void AddDialogBranch(List<EventChoice> list, string itemId, string name, string opensInv, string newState, string nextId)
+        {
+            string nm = (name ?? "").Trim();
+            string next = (nextId ?? "").Trim();
+            if (nm.Length == 0 && next.Length == 0) return;
+            bool auto = nm.Equals("Empty", System.StringComparison.OrdinalIgnoreCase);
             list.Add(new EventChoice
             {
-                label = label.Trim(),
-                resultText = (result ?? "").Trim(),
+                label = auto ? "" : nm,
+                requiredItem = (itemId ?? "").Trim(),
                 opensInventory = ParseBool(opensInv),
                 newState = (newState ?? "").Trim(),
-                nextEventId = (nextId ?? "").Trim()
+                nextEventId = next                 // 다음 대화 id ("Done" = 이벤트 종료)
             });
+        }
+
+        static string GetAny(List<string> row, Dictionary<string, int> col, params string[] names)
+        {
+            foreach (var n in names)
+            {
+                int i;
+                if (col.TryGetValue(n, out i) && i < row.Count) return row[i];
+            }
+            return "";
         }
 
         // 'key' 컬럼명을 포함한 첫 행을 헤더로 간주 (Item=0행, Event=1행에 헤더가 있어 유연 탐지)

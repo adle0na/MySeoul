@@ -1975,7 +1975,7 @@ MonoBehaviour:
     m_FontStyle: 0
     m_BestFit: 0
     m_MinSize: 10
-    m_MaxSize: 40
+    m_MaxSize: 44
     m_Alignment: 1
     m_AlignByGeometry: 0
     m_RichText: 1
@@ -5655,12 +5655,6 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 47d008b94f4082749abc38889714b649, type: 2}
   - {fileID: 11400000, guid: 5c114582295c62f4db678f98cd4e9b03, type: 2}
   - {fileID: 11400000, guid: 571d783e10154f24eb81e9da1402ce09, type: 2}
-  - {fileID: 11400000, guid: 0bdfc64510cae9a4ca9e8f35ae92d59d, type: 2}
-  - {fileID: 11400000, guid: 4ce9ffe032205ef429577e5ac4f6aba7, type: 2}
-  - {fileID: 11400000, guid: e6e43a9ca16e7f14eaad8156cd184ba9, type: 2}
-  - {fileID: 11400000, guid: 491a04726d4346d49bc3f7c8402841a9, type: 2}
-  - {fileID: 11400000, guid: 1c17cb203dcb68348a125451e832b2cc, type: 2}
-  - {fileID: 11400000, guid: 3bd97f55d5eec9843a6b2d551152a3d1, type: 2}
   - {fileID: 11400000, guid: b54fda3d306f059409974772b47b711e, type: 2}
   - {fileID: 11400000, guid: 15ed4bcd40b427346bcfb04796318dd1, type: 2}
   - {fileID: 11400000, guid: 79ac8257948e2a541ad4d6852458632c, type: 2}
@@ -5669,13 +5663,25 @@ MonoBehaviour:
   - {fileID: 11400000, guid: c9c2d90659c944c478d7b594ef16a172, type: 2}
   - {fileID: 11400000, guid: f19372f7a9da9174abd9186846bdc9ea, type: 2}
   - {fileID: 11400000, guid: 147648536d11bf5499a672974fb50cab, type: 2}
-  - {fileID: 11400000, guid: b94b87854db9f4c4fb9bd697549cc3d0, type: 2}
-  - {fileID: 11400000, guid: 4b993a3f2f221604aa7bdb60c13551df, type: 2}
-  - {fileID: 11400000, guid: 7b5accdc2f6ebde4dac13747297b80c7, type: 2}
-  - {fileID: 11400000, guid: 5f1a4dd35100b704691cc8a9308cd353, type: 2}
-  - {fileID: 11400000, guid: 305cebd37e4836645b7ef94d99495f04, type: 2}
-  - {fileID: 11400000, guid: b73593d2bfdfa834aac365467f6d06d9, type: 2}
-  - {fileID: 11400000, guid: f354870d401ab724aae5edd98a1b7ed2, type: 2}
+  dialogs:
+  - {fileID: 11400000, guid: b921019bc9e3a5441850a79e32aa1456, type: 2}
+  - {fileID: 11400000, guid: 124ec23a88a5417439111e331744aa23, type: 2}
+  - {fileID: 11400000, guid: 7677422721bb55d428bb8afe4974de59, type: 2}
+  - {fileID: 11400000, guid: 04dce04bafbfd364f945112a718abe66, type: 2}
+  - {fileID: 11400000, guid: 6b70de2967c14324a80046835f26d800, type: 2}
+  - {fileID: 11400000, guid: 7d6ec4731987e204a92881043374f0c2, type: 2}
+  - {fileID: 11400000, guid: 7b4ff39326dfa0446b46d58a9c5db10c, type: 2}
+  - {fileID: 11400000, guid: e8163f696d305aa45af0e91904bd854c, type: 2}
+  - {fileID: 11400000, guid: 691f4b6f302ce3048b3631c383d21594, type: 2}
+  - {fileID: 11400000, guid: a54880796b1fa0144903da33740084da, type: 2}
+  - {fileID: 11400000, guid: 265774af91a316b43bca25664b9297a9, type: 2}
+  - {fileID: 11400000, guid: beddf44db4c814b4c84c90167be45b0d, type: 2}
+  - {fileID: 11400000, guid: 744407281348b234ab5acfed53bb21e1, type: 2}
+  - {fileID: 11400000, guid: bc647020111652147995a2b188fcb679, type: 2}
+  - {fileID: 11400000, guid: 1011991e4f9d5e341807b2d0896a6606, type: 2}
+  - {fileID: 11400000, guid: 83b36c365dd623246b8f375144745d8a, type: 2}
+  - {fileID: 11400000, guid: 6dd1520e532bcee448bdab2989a9ed37, type: 2}
+  - {fileID: 11400000, guid: fac1cfa3b76d22e42ad7a993f96a060a, type: 2}
   items:
   - {fileID: 11400000, guid: d83881ac31dcfc74c869154fa9e216fe, type: 2}
   - {fileID: 11400000, guid: 7e78a96bf9834f24fb14b64acdbb0514, type: 2}
@@ -10052,7 +10058,7 @@ MonoBehaviour:
     m_FontStyle: 0
     m_BestFit: 0
     m_MinSize: 10
-    m_MaxSize: 40
+    m_MaxSize: 42
     m_Alignment: 1
     m_AlignByGeometry: 0
     m_RichText: 1
@@ -11781,7 +11787,7 @@ MonoBehaviour:
     m_FontStyle: 0
     m_BestFit: 0
     m_MinSize: 10
-    m_MaxSize: 40
+    m_MaxSize: 46
     m_Alignment: 1
     m_AlignByGeometry: 0
     m_RichText: 1
@@ -12954,7 +12960,7 @@ MonoBehaviour:
     m_FontStyle: 0
     m_BestFit: 0
     m_MinSize: 10
-    m_MaxSize: 40
+    m_MaxSize: 46
     m_Alignment: 1
     m_AlignByGeometry: 0
     m_RichText: 1
@@ -13187,7 +13193,7 @@ MonoBehaviour:
     m_FontStyle: 0
     m_BestFit: 0
     m_MinSize: 10
-    m_MaxSize: 40
+    m_MaxSize: 46
     m_Alignment: 1
     m_AlignByGeometry: 0
     m_RichText: 1

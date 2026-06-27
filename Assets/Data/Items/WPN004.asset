@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: WPN004
   m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.ItemData
   itemId: WPN004
-  itemName: "\uC804\uC124\uC758 \uAD70\uB3C4"
+  itemName: 
   itemType: "\uBB34\uAE30"
   durability: 300
   description: "\uC885\uB9D0 \uC774\uC804 \uAD70\uC0AC \uD2B9\uC218\uBD80\uB300\uAC00

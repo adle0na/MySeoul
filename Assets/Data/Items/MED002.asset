@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: MED002
   m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.ItemData
   itemId: MED002
-  itemName: "\uC751\uAE09 \uD0A4\uD2B8"
+  itemName: 
   itemType: "\uD68C\uBCF5"
   durability: -1
   description: "\uC911\uC0C1\uC744 \uBE60\uB974\uAC8C \uCE58\uB8CC\uD560 \uC218 \uC788\uB294

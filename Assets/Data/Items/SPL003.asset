@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: SPL003
   m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.ItemData
   itemId: SPL003
-  itemName: "\uC0DD\uC874\uC790 \uC9C0\uB3C4"
+  itemName: 
   itemType: "\uD2B9\uC218"
   durability: -1
   description: "\uB2E4\uB978 \uC0DD\uC874\uC790\uAC00 \uB0A8\uAE34 \uC190\uC73C\uB85C
