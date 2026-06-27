@@ -13,11 +13,13 @@ MonoBehaviour:
   m_Name: S002-03
   m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.DialogData
   dialogId: S002-03
-  spawnItemId: RES003
-  description: "\uC11C\uB78D\uC744 \uC0B4\uC0B4 \uB2F9\uAE30\uC790 \uC548\uC5D0 \uD1B5\uC870\uB9BC
-    \uD558\uB098\uAC00 \uAD74\uB7EC \uB098\uC628\uB2E4. \uC6B4\uC774 \uC88B\uB2E4."
+  spawnItemId: KEY001
+  description: "\uBE60\uB8E8\uB97C \uB07C\uC6CC \uD798\uAECF \uBE44\uD2C0\uC790 \uCF85!
+    \uC0C1\uC790\uAC00 \uBD80\uC11C\uC9C4\uB2E4. \uC18C\uB9AC\uAC00 \uAD50\uC2E4
+    \uBC16\uAE4C\uC9C0 \uC6B8\uB9B0 \uAC83 \uAC19\uB2E4. \uC548\uC5D0\uB294 '\uACFC\uD559\uC2E4'\uC774\uB77C
+    \uC801\uD78C \uB0A1\uC740 \uC5F4\uC1E0."
   choices:
-  - label: "\uD1B5\uC870\uB9BC\uC744 \uC8FC\uBA38\uB2C8\uC5D0 \uB123\uB294\uB2E4"
+  - label: "\uACFC\uD559\uC2E4 \uC5F4\uC1E0\uB97C \uCC59\uAE34\uB2E4"
     requiredItem: 
     resultText: 
     hunger: 0

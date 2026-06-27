@@ -15,6 +15,7 @@ namespace SeoulLast
         public int MaxUses = 1;        // 내구도(도구) 또는 사용 횟수(회복=1)
         public int RecoverStat = -1;   // -1=도구, 0허기/1수분/2건강/3기운
         public int RecoverAmt = 0;     // 회복량
+        public bool Consumable = true; // false면 사용해도 안 닳음(내구도 -1/손상없음)
         public Sprite Icon;            // 아이템 이미지(있으면 색칸 대신 표시)
 
         public ItemDef(string id, string name, Color color, List<Vector2Int> cells)

@@ -14,19 +14,23 @@ namespace SeoulLast.EditorTools
         string itemCsvUrl;
         string eventCsvUrl;
         string dialogCsvUrl;
+        string locationCsvUrl;
         string csvFolder = "Assets/Data/CSV";
         string itemAssetFolder = "Assets/Data/Items";
         string eventAssetFolder = "Assets/Data/Events";
         string dialogAssetFolder = "Assets/Data/Dialogs";
+        string locationAssetFolder = "Assets/Data/Locations";
 
         const string KeyItemUrl = "NPYG_ItemCsvUrl";
         const string KeyEventUrl = "NPYG_EventCsvUrl";
         const string KeyDialogUrl = "NPYG_DialogCsvUrl";
+        const string KeyLocationUrl = "NPYG_LocationCsvUrl";
 
         // static 임포트(윈도우 인스턴스 없이 호출 가능)용 기본 폴더
         const string CsvFolder = "Assets/Data/CSV";
         const string EventFolder = "Assets/Data/Events";
         const string DialogFolder = "Assets/Data/Dialogs";
+        const string LocationFolder = "Assets/Data/Locations";
 
         [MenuItem("NoPainYesGame/Data Tools")]
         static void Open() => GetWindow<DataToolsWindow>("Data Tools");
@@ -36,6 +40,7 @@ namespace SeoulLast.EditorTools
             itemCsvUrl = EditorPrefs.GetString(KeyItemUrl, "");
             eventCsvUrl = EditorPrefs.GetString(KeyEventUrl, "");
             dialogCsvUrl = EditorPrefs.GetString(KeyDialogUrl, "");
+            locationCsvUrl = EditorPrefs.GetString(KeyLocationUrl, "");
         }
 
         void OnGUI()
@@ -51,6 +56,7 @@ namespace SeoulLast.EditorTools
             itemCsvUrl = EditorGUILayout.TextField("Item 시트 URL", itemCsvUrl);
             eventCsvUrl = EditorGUILayout.TextField("Event 시트 URL", eventCsvUrl);
             dialogCsvUrl = EditorGUILayout.TextField("EventDialog 시트 URL", dialogCsvUrl);
+            locationCsvUrl = EditorGUILayout.TextField("Location 시트 URL", locationCsvUrl);
             csvFolder = EditorGUILayout.TextField("CSV 저장 폴더", csvFolder);
             itemAssetFolder = EditorGUILayout.TextField("ItemData 에셋 폴더", itemAssetFolder);
             eventAssetFolder = EditorGUILayout.TextField("EventData 에셋 폴더", eventAssetFolder);
@@ -62,6 +68,7 @@ namespace SeoulLast.EditorTools
                 EditorPrefs.SetString(KeyItemUrl, itemCsvUrl);
                 EditorPrefs.SetString(KeyEventUrl, eventCsvUrl);
                 EditorPrefs.SetString(KeyDialogUrl, dialogCsvUrl);
+                EditorPrefs.SetString(KeyLocationUrl, locationCsvUrl);
                 DownloadCsvs();
             }
             EditorGUILayout.Space(4);
@@ -73,6 +80,9 @@ namespace SeoulLast.EditorTools
             EditorGUILayout.Space(4);
             if (GUILayout.Button("④  EventDialog.csv → DialogData 에셋 생성/갱신", GUILayout.Height(34)))
                 ImportDialogs();
+            EditorGUILayout.Space(4);
+            if (GUILayout.Button("⑤  Location.csv → LocationData 에셋 생성/갱신", GUILayout.Height(34)))
+                ImportLocations();
         }
 
         void DownloadCsvs()
@@ -82,6 +92,7 @@ namespace SeoulLast.EditorTools
             if (TryDownload(itemCsvUrl, Path.Combine(csvFolder, "Item.csv"))) ok++;
             if (TryDownload(eventCsvUrl, Path.Combine(csvFolder, "Event.csv"))) ok++;
             if (TryDownload(dialogCsvUrl, Path.Combine(csvFolder, "EventDialog.csv"))) ok++;
+            if (TryDownload(locationCsvUrl, Path.Combine(csvFolder, "Location.csv"))) ok++;
             AssetDatabase.Refresh();
             EditorUtility.DisplayDialog("CSV 최신화", $"{ok}개 파일 다운로드 완료.\n폴더: {csvFolder}", "확인");
         }
@@ -325,6 +336,57 @@ namespace SeoulLast.EditorTools
                 else { EditorUtility.SetDirty(d); updated++; }
             }
 
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            return new[] { created, updated };
+        }
+
+        // ---------- Location.csv → LocationData ----------
+        void ImportLocations()
+        {
+            string csvPath = Path.Combine(csvFolder, "Location.csv");
+            if (!File.Exists(csvPath))
+            {
+                EditorUtility.DisplayDialog("오류", $"{csvPath} 없음.\n먼저 ① 최신화를 실행하세요.", "확인");
+                return;
+            }
+            var res = RunImportLocations();
+            if (res == null) { EditorUtility.DisplayDialog("오류", "Location.csv에서 'LocationID' 헤더를 찾지 못했습니다.", "확인"); return; }
+            EditorUtility.DisplayDialog("임포트 완료", $"장소 생성 {res[0]}개 / 갱신 {res[1]}개\n폴더: {locationAssetFolder}", "확인");
+        }
+
+        public static int[] RunImportLocations()
+        {
+            string csvPath = Path.Combine(CsvFolder, "Location.csv");
+            if (!File.Exists(csvPath)) return null;
+            Directory.CreateDirectory(LocationFolder);
+
+            var rows = CsvParser.Parse(File.ReadAllText(csvPath));
+            int headerRow = FindHeaderRow(rows, "LocationID");
+            if (headerRow < 0) return null;
+            var col = MapColumns(rows[headerRow]);
+
+            int created = 0, updated = 0;
+            for (int r = headerRow + 1; r < rows.Count; r++)
+            {
+                var row = rows[r];
+                string id = Get(row, col, "LocationID").Trim();
+                if (!id.StartsWith("Loc")) continue;
+
+                string assetPath = $"{LocationFolder}/{id}.asset";
+                var loc = AssetDatabase.LoadAssetAtPath<LocationData>(assetPath);
+                bool isNew = loc == null;
+                if (isNew) loc = ScriptableObject.CreateInstance<LocationData>();
+
+                loc.locationId = id;
+                loc.locationName = Get(row, col, "LocationName");
+                loc.isLock = ParseBool(Get(row, col, "LocationIsLock"));
+                loc.visitCount = ParseInt(Get(row, col, "LocationVisitCount"));
+                loc.description = Get(row, col, "LocationDescription");
+
+                if (isNew) { AssetDatabase.CreateAsset(loc, assetPath); created++; }
+                else { EditorUtility.SetDirty(loc); updated++; }
+            }
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             return new[] { created, updated };

@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1b1599fe0cca7ac4faf69b209d7b9434, type: 3}
+  m_Name: TOO004
+  m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.ItemData
+  itemId: TOO004
+  itemName: "\uCC28\uB2E8\uAE30 \uC190\uC7A1\uC774"
+  itemType: "\uB3C4\uAD6C"
+  durability: -1
+  description: "\uD1B5\uC81C\uC2E4\uC5D0\uC11C \uBF51\uC544\uB0B8 \uCC28\uB2E8\uAE30
+    \uC190\uC7A1\uC774. \uC774\uAC8C \uBE60\uC9C4 \uD55C, \uC625\uC0C1\uC758 \uC804\uC790
+    \uC7A0\uAE08\uC740 \uB2E4\uC2DC \uC0B4\uC544\uB098\uC9C0 \uC54A\uB294\uB2E4."
+  sellGold: 0
+  buyGold: 0
+  cashPrice: -1
+  canBeDamaged: 0
+  specialEvent: 
+  resourcePath: 
+  resourceName: 
+  icon: {fileID: 0}
+  shape: 000000000000000000000000000000000000000000000000000000000000

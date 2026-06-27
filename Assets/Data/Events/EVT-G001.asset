@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6aa2a7afbc13e824d869983204d074bc, type: 3}
   m_Name: EVT-G001
   m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.EventData
-  minLevel: 0
+  minLevel: 1
   startDialogId: G001-01
   dayMin: 1
   dayMax: 99
@@ -81,4 +81,4 @@ MonoBehaviour:
   statusDuration: 0
   statusModifier: 
   difficulty: 
-  note: "\uC790\uD310\uAE30 \uBC1C\uACAC \uC774\uBCA4\uD2B8 \uB4DC\uB77C\uC774\uBE0C"
+  note: "\uC790\uD310\uAE30"

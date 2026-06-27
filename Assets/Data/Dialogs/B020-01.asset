@@ -1,0 +1,64 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1eec2317928f40243841964eee97936b, type: 3}
+  m_Name: B020-01
+  m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.DialogData
+  dialogId: B020-01
+  spawnItemId: 
+  description: "\uB9C9\uB2E4\uB978 \uBCF5\uB3C4. \uB4A4\uC5D0\uC120 \uC911\uBB34\uC7A5
+    \uB85C\uBD07\uC774 \uB2E4\uAC00\uC624\uACE0, \uC55E\uC740 \uBCBD\uC774\uB2E4.
+    \uC774\uBC88\uC5D4 \uC815\uB9D0 \uC120\uD0DD\uC9C0\uAC00 \uC5C6\uB2E4."
+  choices:
+  - label: "\uC228\uC744 \uACF3\uC744 \uD544\uC0AC\uC801\uC73C\uB85C \uCC3E\uB294\uB2E4"
+    requiredItem: 
+    resultText: 
+    hunger: 0
+    thirst: 0
+    pain: 0
+    fatigue: 0
+    bagUpgrade: 0
+    opensInventory: 0
+    newState: 
+    nextEventId: B020-02
+    correct: 0
+    rewardItem: 
+    loseRandomItem: 0
+  - label: "\uBE44\uC0C1\uB3C4\uB07C\uB97C \uB4E4\uACE0 \uC8FD\uAE30 \uC0B4\uAE30\uB85C
+      \uB9DE\uC120\uB2E4"
+    requiredItem: WPN008
+    resultText: 
+    hunger: 0
+    thirst: 0
+    pain: 0
+    fatigue: 0
+    bagUpgrade: 0
+    opensInventory: 0
+    newState: 
+    nextEventId: B020-03
+    correct: 0
+    rewardItem: 
+    loseRandomItem: 0
+  - label: "\uB9C8\uC9C0\uB9C9 \uD654\uD559\uC57D\uD488\uC73C\uB85C \uD65C\uB85C\uB97C
+      \uC5F0\uB2E4"
+    requiredItem: TOO003
+    resultText: 
+    hunger: 0
+    thirst: 0
+    pain: 0
+    fatigue: 0
+    bagUpgrade: 0
+    opensInventory: 0
+    newState: 
+    nextEventId: B020-04
+    correct: 0
+    rewardItem: 
+    loseRandomItem: 0
