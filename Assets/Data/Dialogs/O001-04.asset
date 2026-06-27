@@ -26,7 +26,7 @@ MonoBehaviour:
     fatigue: 0
     bagUpgrade: 0
     opensInventory: 0
-    newState: Empty
+    newState: 
     nextEventId: O001-07
     correct: 0
     rewardItem: 

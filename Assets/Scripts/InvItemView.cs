@@ -1,6 +1,7 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using TMPro;
 
 namespace SeoulLast
 {
@@ -19,10 +20,11 @@ namespace SeoulLast
         void MoveToStorage(InvItemView item);
         void ReturnToStorage(InvItemView item);
         void Discard(InvItemView item);
+        void SelectItem(InvItemView item);
     }
 
-    // 인벤토리 아이템 뷰. 그리드 ↔ 트레이 드래그, 버리기 존에 놓으면 폐기.
-    public class InvItemView : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
+    // 인벤토리 아이템 뷰. 그리드 ↔ 트레이 드래그, 버리기 존에 놓으면 폐기, 클릭하면 선택.
+    public class InvItemView : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler, IPointerClickHandler
     {
         public PlacedItem Model;
         public bool InBag;
@@ -60,9 +62,20 @@ namespace SeoulLast
                 crt.sizeDelta = new Vector2(cell - gap * 2, cell - gap * 2);
                 crt.anchoredPosition = new Vector2(c.x * cell + gap, -(c.y * cell + gap));
             }
+            // 아이템 이미지가 있으면 모양 박스 위에 스프라이트 표시
+            if (Model.Def.Icon != null)
+            {
+                var ico = UIFactory.Img(transform, "icon", Color.white);
+                ico.sprite = Model.Def.Icon; ico.type = Image.Type.Simple; ico.preserveAspect = true;
+                ico.raycastTarget = false;
+                var irt = ico.rectTransform;
+                irt.anchorMin = new Vector2(0, 1); irt.anchorMax = new Vector2(0, 1); irt.pivot = new Vector2(0, 1);
+                irt.sizeDelta = new Vector2(Model.Def.Width * cell, Model.Def.Height * cell);
+                irt.anchoredPosition = Vector2.zero;
+            }
             // 이름 + 상태(회복류 / 내구도)
             string sub = Model.Def.IsRecovery ? "" : "  x" + Model.Uses;
-            var label = UIFactory.Label(transform, "n", Model.Def.Name + sub, 20, TextAnchor.MiddleCenter, new Color(0.12f, 0.12f, 0.12f));
+            var label = UIFactory.Label(transform, "n", Model.Def.Name + sub, 20, TextAlignmentOptions.Center, new Color(0.12f, 0.12f, 0.12f));
             label.raycastTarget = false;
             UIFactory.Fill(label.rectTransform);
         }
@@ -126,6 +139,12 @@ namespace SeoulLast
             // 4) 그 외 → 원위치
             if (InBag) AttachToBag(Model.Origin);
             else host.ReturnToStorage(this);
+        }
+
+        // 클릭(드래그 아님)하면 선택. 드래그 시엔 EventSystem이 click을 발생시키지 않음.
+        public void OnPointerClick(PointerEventData e)
+        {
+            host.SelectItem(this);
         }
 
         public void AttachToBag(Vector2Int origin)

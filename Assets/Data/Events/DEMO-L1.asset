@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6aa2a7afbc13e824d869983204d074bc, type: 3}
+  m_Name: DEMO-L1
+  m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.EventData
+  minLevel: 0
+  startDialogId: DEMO-L1-01
+  dayMin: 1
+  dayMax: 99
+  endingId: 
+  situation: 
+  choices: []
+  objectId: 
+  description: 
+  eventId: DEMO-L1
+  eventName: DEMO-L1
+  eventType: "\uD2B9\uC815\uC9C0\uC5ED"
+  eventCategory: 
+  probability: 0
+  hasBranch: 
+  region: "\uC74C\uC545\uC2E4"
+  regionEntryCondition: 
+  regionSpecialEffect: 
+  relatedItemId: 
+  itemOwnedResult: 
+  itemNotOwnedResult: 
+  branchAResult: 
+  branchBResult: 
+  foodWaterChange: 0
+  weaponAmmoChange: 0
+  moraleChange: 0
+  medicalSupplyChange: 0
+  failFoodWater: 0
+  failMorale: 0
+  failMedical: 0
+  statusEffect: 
+  statusDuration: 0
+  statusModifier: 
+  difficulty: 
+  note: 

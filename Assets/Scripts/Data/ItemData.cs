@@ -28,6 +28,7 @@ namespace SeoulLast.Data
         public string specialEvent;      // ItemSpecialEvent (연동 이벤트)
         public string resourcePath;      // ItemResourcePath
         public string resourceName;      // ItemResourceName
+        public Sprite icon;              // resourcePath에서 로드된 아이템 이미지(임포트 시 할당)
 
         [Header("모양 (6x5 — 인스펙터 그리드에서 편집, 시트에 컬럼 없음)")]
         public bool[] shape = new bool[GridW * GridH];

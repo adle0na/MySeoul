@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: EVT-G002
   m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.EventData
   minLevel: 0
-  startDialogId: 
+  startDialogId: G002-01
   dayMin: 1
   dayMax: 99
   endingId: 
@@ -46,4 +46,4 @@ MonoBehaviour:
   statusDuration: 0
   statusModifier: 
   difficulty: 
-  note: "\uAC00\uC9DC \uC790\uD310\uAE30 \uBC1C\uACAC \uC774\uBCA4\uD2B8"
+  note: "\uC790\uD310\uAE30 \uBC1C\uACAC \uC774\uBCA4\uD2B8 2"

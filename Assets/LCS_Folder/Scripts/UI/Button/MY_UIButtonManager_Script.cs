@@ -15,10 +15,8 @@ public class MY_UIButtonManager_Script : MonoBehaviour
     public enum UIButtonType
     {
         None,
-        Chest,
-        Map,
-        Diary,
-        Shop,
+        BagOpen,
+        Setting,
         MAX
     }
 
