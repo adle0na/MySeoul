@@ -84,7 +84,7 @@ namespace SeoulLast
         Button bagToggleBtn;            // 하단 가방 토글
         bool walking;                   // 걷는 중(배경 스크롤 + Spine 재생)
         float itemMeetX;                // 아이템이 멈출 x(캐릭터 위치)
-        const float SCROLL_SPEED = 0.18f;
+        const float SCROLL_SPEED = 0.06f;
         Component charSpine;            // Spine SkeletonGraphic (리플렉션 제어)
         System.Reflection.FieldInfo spineTimeScale;
 
@@ -499,30 +499,40 @@ namespace SeoulLast
             yield return new WaitForSeconds(0.9f);
             walking = false;
 
-            // 2) 머리 위 연출 — 아이템 이벤트면 느낌표, 아니면 말풍선
-            yield return StartCoroutine(PlayOverhead(hasItem ? exclamFrames : speechFrames, hasItem ? 0.6f : 0.7f));
+            // 2) 머리 위 연출 — 아이템이면 느낌표, 아니면 말풍선.
+            //    멈춘 직후 떠서 다음 걷기 시작(StartApproach)까지 계속 표시·순환.
+            ShowOverhead(hasItem ? exclamFrames : speechFrames);
+            yield return new WaitForSeconds(0.4f);
 
             // 3) 아이템이 있으면 우측에서 연기(pung)와 함께 뿅 등장
             if (hasItem) yield return StartCoroutine(PopItem());
 
-            // 4) 카드 표시 + 텍스트 타이핑
-            if (overheadFx != null) overheadFx.gameObject.SetActive(false);
+            // 4) 카드 표시 + 텍스트 타이핑 (말풍선은 그대로 유지)
             if (eventCard != null) eventCard.gameObject.SetActive(true);
             StartReveal();
         }
 
-        // 머리 위 스프라이트 프레임 애니메이션을 duration 동안 루프 재생(끝나도 표시 유지)
-        IEnumerator PlayOverhead(Sprite[] frames, float duration)
+        Coroutine overheadAnim;
+
+        // 머리 위 말풍선/느낌표를 띄우고 프레임을 계속 순환. 숨김은 다음 걷기 시작 때(StartApproach).
+        void ShowOverhead(Sprite[] frames)
         {
-            if (overheadFx == null || frames == null || frames.Length == 0) { yield return new WaitForSeconds(duration); yield break; }
+            if (overheadFx == null) return;
+            if (frames == null || frames.Length == 0) { overheadFx.gameObject.SetActive(false); return; }
             overheadFx.gameObject.SetActive(true);
+            if (overheadAnim != null) StopCoroutine(overheadAnim);
+            overheadAnim = StartCoroutine(OverheadAnimCo(frames));
+        }
+
+        IEnumerator OverheadAnimCo(Sprite[] frames)
+        {
+            int i = 0; const float ft = 0.12f;
             overheadFx.sprite = frames[0];
-            float t = 0, acc = 0; const float ft = 0.12f; int i = 0;
-            while (t < duration)
+            while (overheadFx != null && overheadFx.gameObject.activeSelf)
             {
-                t += Time.deltaTime; acc += Time.deltaTime;
-                if (acc >= ft) { acc = 0; i = (i + 1) % frames.Length; overheadFx.sprite = frames[i]; }
-                yield return null;
+                yield return new WaitForSeconds(ft);
+                i = (i + 1) % frames.Length;
+                if (overheadFx != null) overheadFx.sprite = frames[i];
             }
         }
 
