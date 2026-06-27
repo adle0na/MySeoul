@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.LocationData
   locationId: Loc006
   locationName: "\uD654\uC7A5\uC2E4"
+  floor: 0
   isLock: 0
   visitCount: 0
   description: "\uD654\uC7A5\uC2E4. \uC218\uB3C4\uAF2D\uC9C0\uB97C \uD2C0\uC5B4\uB3C4

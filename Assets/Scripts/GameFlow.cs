@@ -732,22 +732,56 @@ namespace SeoulLast
         void ShowMap()
         {
             for (int i = mapArea.childCount - 1; i >= 0; i--) Destroy(mapArea.GetChild(i).gameObject);
-            float y = 0; int shown = 0;
-            // Location 시트: 잠금 해제된 장소만 노출
+
+            // 잠금 해제된 장소를 층(floor)별로 묶는다. 높은 층이 위로 오도록 내림차순.
+            var byFloor = new SortedDictionary<int, List<LocationData>>(
+                Comparer<int>.Create((a, b) => b.CompareTo(a)));
             if (locations != null)
                 foreach (var l in locations)
                 {
                     if (l == null || l.isLock) continue;
-                    var lid = l.locationId; var lname = l.locationName;
-                    TextMeshProUGUI tl; var b = UIFactory.Button(mapArea, "loc", lname, new Color(0.32f, 0.45f, 0.6f), () => StartStage(lid, lname), out tl);
-                    UIFactory.SetRect(b.GetComponent<RectTransform>(), 0, y, 920, 120); y += 134; shown++;
+                    if (!byFloor.TryGetValue(l.floor, out var list)) { list = new List<LocationData>(); byFloor[l.floor] = list; }
+                    list.Add(l);
                 }
+
+            const float areaW = W - 160f;     // mapArea 너비 (SetRect와 일치)
+            const float btnW = 290f, btnH = 110f, gapX = 15f, gapY = 14f, labelH = 56f, floorGap = 30f;
+            int perRow = Mathf.Max(1, Mathf.FloorToInt((areaW + gapX) / (btnW + gapX)));   // 한 줄 버튼 수(=3)
+            float y = 0f; int shown = 0;
+
+            foreach (var kv in byFloor)
+            {
+                // 층 라벨 ("3층" 등). 위층부터 한 줄씩.
+                var lab = UIFactory.Label(mapArea, "floorLabel", FloorName(kv.Key), 34, TextAlignmentOptions.Left, new Color(0.85f, 0.88f, 0.95f));
+                UIFactory.SetRect(lab.rectTransform, 0, y, areaW, labelH);
+                y += labelH;
+
+                var list = kv.Value;
+                for (int i = 0; i < list.Count; i++)
+                {
+                    int col = i % perRow, rowIdx = i / perRow;
+                    var lid = list[i].locationId; var lname = list[i].locationName;
+                    TextMeshProUGUI tl; var b = UIFactory.Button(mapArea, "loc", lname, new Color(0.32f, 0.45f, 0.6f), () => StartStage(lid, lname), out tl);
+                    UIFactory.SetRect(b.GetComponent<RectTransform>(), col * (btnW + gapX), y + rowIdx * (btnH + gapY), btnW, btnH);
+                    shown++;
+                }
+                int rows = Mathf.CeilToInt(list.Count / (float)perRow);
+                y += rows * btnH + (rows > 1 ? (rows - 1) * gapY : 0) + floorGap;
+            }
+
             if (shown == 0)
             {
                 TextMeshProUGUI tl; var b = UIFactory.Button(mapArea, "loc", "어디든 (일반)", new Color(0.32f, 0.45f, 0.6f), () => StartStage("", "어디든"), out tl);
                 UIFactory.SetRect(b.GetComponent<RectTransform>(), 0, 0, 920, 120);
             }
             Only(mapPanel);
+        }
+
+        // 층 번호 → 표시 이름. 특수층은 여기서 매핑(필요 시 확장).
+        string FloorName(int f)
+        {
+            if (f <= 0) return "기타";
+            return f + "층";
         }
 
         EventData FindEvent(string id)
