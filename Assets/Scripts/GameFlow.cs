@@ -189,8 +189,9 @@ namespace SeoulLast
             Wire(c, "CutscenePanel/CutNext", BeginOnboarding);
             if (c.Find("BagPanel/DayStart") != null) Wire(c, "BagPanel/DayStart", BagDone);
             Wire(c, "BagPanel/UseBtn", OnUseBtn);
+            // BagToggle이 BagPanel/EventPanel 양쪽에 있을 수 있으므로 둘 다 배선(이벤트 중 보이는 건 EventPanel 쪽)
             if (c.Find("BagPanel/BagToggle") != null) Wire(c, "BagPanel/BagToggle", OnBagToggle);
-            else if (c.Find("EventPanel/BagToggle") != null) Wire(c, "EventPanel/BagToggle", OnBagToggle);
+            if (c.Find("EventPanel/BagToggle") != null) Wire(c, "EventPanel/BagToggle", OnBagToggle);
             Wire(c, "RestPanel/RestBag", () => ShowBag(ShowRest, "휴식으로 →"));
             Wire(c, "RestPanel/RestMap", ShowMap);
             Wire(c, "EndingPanel/EndingPanelBtn", Restart);
@@ -466,8 +467,8 @@ namespace SeoulLast
                 yield return null;
             }
             bagPanelRT.anchoredPosition = new Vector2(bagPanelRT.anchoredPosition.x, endY);
-            if (!show) { bagPanel.SetActive(false); }
-            else isSlidingBag = false;
+            if (!show) bagPanel.SetActive(false);
+            isSlidingBag = false;   // show/hide 모두 해제 (hide 후에도 풀어 다음 BagDone이 막히지 않도록)
             onDone?.Invoke();
         }
 
@@ -654,12 +655,12 @@ namespace SeoulLast
             {
                 var d = FindItemData(curDialog.spawnItemId);
                 if (d != null && d.icon != null) { itemImg.sprite = d.icon; itemImg.color = Color.white; }
-                itemImg.rectTransform.anchoredPosition = new Vector2(W - 240, -840);
+                CenterInEventPanel(itemImg.rectTransform);   // 화면 중앙에 등장
                 itemImg.rectTransform.localScale = Vector3.zero;
                 itemImg.gameObject.SetActive(true);
             }
             bool hasPung = pungFx != null && pungFrames != null && pungFrames.Length > 0;
-            if (hasPung) { pungFx.sprite = pungFrames[0]; pungFx.gameObject.SetActive(true); }
+            if (hasPung) { pungFx.sprite = pungFrames[0]; CenterInEventPanel(pungFx.rectTransform); pungFx.gameObject.SetActive(true); }
             var irt = itemImg != null ? itemImg.rectTransform : null;
             float t = 0, dur = 0.45f, acc = 0; const float ft = 0.1f; int pi = 0;
             while (t < dur)
@@ -671,6 +672,16 @@ namespace SeoulLast
             }
             if (irt != null) irt.localScale = Vector3.one;
             if (pungFx != null) pungFx.gameObject.SetActive(false);
+        }
+
+        // RectTransform을 부모(EventPanel) 중앙에 배치 (앵커/피벗 (0,1) 기준)
+        void CenterInEventPanel(RectTransform rt)
+        {
+            if (rt == null) return;
+            var prt = rt.parent as RectTransform;
+            float pw = prt != null ? prt.rect.width : W;
+            float ph = prt != null ? prt.rect.height : 1920f;
+            rt.anchoredPosition = new Vector2(pw * 0.5f - rt.sizeDelta.x * 0.5f, -(ph * 0.5f - rt.sizeDelta.y * 0.5f));
         }
 
         // 0→1 살짝 튀는 back-out 이징(뿅)
