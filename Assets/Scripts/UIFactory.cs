@@ -14,6 +14,11 @@ namespace SeoulLast
         // 한글 폰트 주입(빌드 대비). GameFlow가 Awake에서 설정.
         public static TMP_FontAsset Override;
 
+        // 버튼 클릭음(GameFlow가 Awake에서 주입)
+        public static AudioSource Sfx;
+        public static AudioClip ClickClip;
+        public static void PlayClick() { if (Sfx != null && ClickClip != null) Sfx.PlayOneShot(ClickClip); }
+
         public static TMP_FontAsset GetTMPFont()
         {
             if (_tmpFont != null) return _tmpFont;
@@ -110,6 +115,7 @@ namespace SeoulLast
             img.color = bg;
             var btn = go.GetComponent<Button>();
             btn.targetGraphic = img;
+            btn.onClick.AddListener(PlayClick);   // 클릭음
             if (onClick != null) btn.onClick.AddListener(onClick);
 
             labelText = Label(go.transform, "Label", label, 32, TextAlignmentOptions.Center, Color.white);

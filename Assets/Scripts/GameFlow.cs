@@ -128,8 +128,40 @@ namespace SeoulLast
                 if (existing != null) Destroy(existing);
                 BuildUI();
             }
+            SetupAudio();
             HideAll();
         }
+
+        // ---------- 사운드 ----------
+        AudioSource bgmSource, sfxSource, typingSource;
+        AudioClip clickClip, typingClip;
+
+        void SetupAudio()
+        {
+            bgmSource = gameObject.AddComponent<AudioSource>();
+            sfxSource = gameObject.AddComponent<AudioSource>();
+            typingSource = gameObject.AddComponent<AudioSource>();
+            var bgm = LoadClip("Bgm");
+            if (bgm != null) { bgmSource.clip = bgm; bgmSource.loop = true; bgmSource.volume = 0.5f; bgmSource.Play(); }
+            clickClip = LoadClip("button");
+            typingClip = LoadClip("keyboard_typing");
+            if (typingClip != null) { typingSource.clip = typingClip; typingSource.loop = true; typingSource.volume = 0.6f; }
+            UIFactory.Sfx = sfxSource; UIFactory.ClickClip = clickClip;   // 버튼 클릭음 주입
+        }
+
+        AudioClip LoadClip(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return null;
+            var c = Resources.Load<AudioClip>("Sound/" + name);
+            if (c != null) return c;
+#if UNITY_EDITOR
+            var cx = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/art/Sound/" + name + ".mp3");
+            if (cx != null) return cx;
+#endif
+            return null;
+        }
+
+        public void PlayClick() { if (sfxSource != null && clickClip != null) sfxSource.PlayOneShot(clickClip); }
 
         // 씬에 배치된 FlowCanvas의 오브젝트를 이름으로 찾아 참조 연결 + 버튼 동작 와이어링
         void BindUI(Transform c)
@@ -222,6 +254,7 @@ namespace SeoulLast
             var b = t.GetComponent<Button>();
             if (b == null) return;
             b.onClick.RemoveAllListeners();
+            b.onClick.AddListener(UIFactory.PlayClick);   // 클릭음
             b.onClick.AddListener(action);
         }
 
@@ -241,7 +274,7 @@ namespace SeoulLast
 
         // ---------- 흐름 ----------
         void ShowStart() { Only(startPanel); }
-        void OnStartBtn() { if (!cutsceneSeen) { cutsceneSeen = true; Only(cutscenePanel); } else BeginOnboarding(); }
+        void OnStartBtn() { BeginOnboarding(); }   // 컷씬 제거 — 시작 시 바로 온보딩
 
         // 온보딩(스테이지 0) 시작 — EVT-O001부터 그래프대로 진행
         void BeginOnboarding()
@@ -518,9 +551,7 @@ namespace SeoulLast
         {
             ClearChoices();
             SetCardBG(false, false);
-            // [개발용] 이벤트/대화 ID 표시 — 나중에 제거
-            string devTag = $"<color=#ff6666>[{(curEvent != null ? curEvent.eventId : "?")} / {(curDialog != null ? curDialog.dialogId : "?")}]</color>";
-            eventTitle.text = devTag + (curDialog != null && !string.IsNullOrEmpty(curDialog.spawnItemId) ? "  무언가를 발견했다!" : "");
+            eventTitle.text = (curDialog != null && !string.IsNullOrEmpty(curDialog.spawnItemId)) ? "무언가를 발견했다!" : "";
             string body = string.IsNullOrWhiteSpace(curDialog.description)
                 ? $"<color=#888888>(임시) {curEvent.eventType}{(string.IsNullOrEmpty(curEvent.region) ? "" : " · " + curEvent.region)} — 대화 준비 중</color>"
                 : curDialog.description;
@@ -805,6 +836,7 @@ namespace SeoulLast
             if (total <= 0) { revealing = false; if (choiceArea != null) choiceArea.gameObject.SetActive(true); return; }
             eventBody.maxVisibleCharacters = 0;
             revealing = true;
+            if (typingSource != null && typingClip != null && !typingSource.isPlaying) typingSource.Play();   // 타이핑 사운드
             revealRoutine = StartCoroutine(RevealCo(total));
         }
 
@@ -824,6 +856,7 @@ namespace SeoulLast
         {
             revealing = false;
             if (revealRoutine != null) { StopCoroutine(revealRoutine); revealRoutine = null; }
+            if (typingSource != null && typingSource.isPlaying) typingSource.Stop();   // 타이핑 사운드 정지
             if (eventBody != null) eventBody.maxVisibleCharacters = 99999;
             if (choiceArea != null)
             {
@@ -868,8 +901,7 @@ namespace SeoulLast
         {
             if (dayText == null) return;
             string place = stageNo == 0 ? "체육창고" : (string.IsNullOrEmpty(stageLocationName) ? "어딘가" : stageLocationName);
-            string d = stageNo == 0 ? "온보딩" : "DAY " + stageNo;
-            dayText.text = $"{d}     {place}     ({Mathf.Min(eventsThisStage + 1, STAGE_LEN)}/{STAGE_LEN})";
+            dayText.text = stageNo == 0 ? place : $"DAY {stageNo}     {place}";   // 온보딩/진행도 표기 제거
         }
 
         void UpdateStatusRail()
@@ -1084,6 +1116,7 @@ namespace SeoulLast
         void ShowMap()
         {
             EnsureMapGoButton();
+            CleanMapInfo();
             selLocId = null; selLocName = null;
             if (mapGoBtn != null) mapGoBtn.SetActive(false);
             // 맵 이미지가 버튼을 가리지 않도록 맨 뒤로 + 클릭 통과
@@ -1173,6 +1206,28 @@ namespace SeoulLast
         {
             if (f <= 0) return "지역";
             return f + "층";
+        }
+
+        // 하단 정보영역: 흰 빈 이미지/장식 숨기고 이름·설명 중앙 정렬
+        void CleanMapInfo()
+        {
+            if (mapPanel == null) return;
+            var da = mapPanel.transform.Find("DiscriptionArea");
+            if (da == null) return;
+            foreach (Transform ch in da)
+                if (ch.name == "AreaImg" || ch.name == "Divider" || ch.name == "ItemText") ch.gameObject.SetActive(false);
+            CenterText(mapInfoName, 140, 80);
+            CenterText(mapInfoDesc, -30, 360);
+        }
+
+        void CenterText(TextMeshProUGUI t, float y, float h)
+        {
+            if (t == null) return;
+            var rt = t.rectTransform;
+            rt.anchorMin = new Vector2(0.5f, 0.5f); rt.anchorMax = new Vector2(0.5f, 0.5f); rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.sizeDelta = new Vector2(940, h);
+            rt.anchoredPosition = new Vector2(0, y);
+            t.alignment = TextAlignmentOptions.Center;
         }
 
         // 지역 버튼 선택 → 하단 정보 표시 + 출발 버튼 노출
@@ -1380,7 +1435,7 @@ namespace SeoulLast
             var bgImg = go.GetComponentInChildren<UnityEngine.UI.Image>();
             if (bgImg != null) { bgImg.raycastTarget = true; btn.targetGraphic = bgImg; }
             btn.interactable = enabled;
-            if (enabled) { var cc = c; btn.onClick.AddListener(() => OnDialogBranch(cc)); }
+            if (enabled) { var cc = c; btn.onClick.AddListener(UIFactory.PlayClick); btn.onClick.AddListener(() => OnDialogBranch(cc)); }
         }
 
         int choiceCount;
