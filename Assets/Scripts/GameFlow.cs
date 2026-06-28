@@ -68,11 +68,17 @@ namespace SeoulLast
         RectTransform gridRect, slotsRect, trayRect, trashZone, dragLayer;
         Button useBtn; TextMeshProUGUI useBtnLabel; PlacedItem selectedItem;
         System.Action bagOnDone;        // 가방 정비 완료 시 동작(맥락별)
+        RectTransform bagPanelRT;
+        float bagHiddenY;
+        float bagShownY;
+        bool  isSlidingBag;
+        bool  bagOpenedByItem;  // true=아이템 획득으로 열림, false=버튼으로 열림
         SeoulLast.ScreenSpeedTransition transition;
 
         // ---- Explore 화면 (사이드스크롤 연출) ----
         TextMeshProUGUI dayText;                   // 상단바 "DAY n · 장소"
-        Image[] statusIcon = new Image[4];   // 좌측 상태레일 아이콘
+        MY_UIIcon_Script[] statusIcon = new MY_UIIcon_Script[4];   // 좌측 상태레일 아이콘
+        int[] statusLevel = new int[4];   // 이전 상태 레벨 추적
         TextMeshProUGUI[] statusLabel = new TextMeshProUGUI[4];    // 상태 이름
         RawImage bgRaw;                 // 인피니티 스크롤 배경
         Image charImg;                  // 메인 캐릭터(스프라이트, 추후 Spine 교체)
@@ -81,7 +87,8 @@ namespace SeoulLast
         GameObject cardBGChoice;          // 선택지 버튼 배경
         GameObject cardBGResult;          // 결과 텍스트 배경
         GameObject cardBGBase;            // 기본 배경 (Choice/Result 꺼졌을 때)
-        Button bagToggleBtn;            // 하단 가방 토글
+        Button bagToggleBtn;
+        Button nextBtn;                  // 결과 확인 후 다음 단계 버튼            // 하단 가방 토글
         bool walking;                   // 걷는 중(배경 스크롤 + Spine 재생)
         float itemMeetX;                // 아이템이 멈출 x(캐릭터 위치)
         const float SCROLL_SPEED = 0.06f;
@@ -133,7 +140,7 @@ namespace SeoulLast
             endingBody = c.Find("EndingPanel/Box/B").GetComponent<TextMeshProUGUI>();
             goBody = c.Find("GameOverPanel/Box/B").GetComponent<TextMeshProUGUI>();
             restBody = c.Find("RestPanel/Box/B").GetComponent<TextMeshProUGUI>();
-            bagBtnLabel = c.Find("BagPanel/DayStart/Label").GetComponent<TextMeshProUGUI>();
+            var dayStartLabel = c.Find("BagPanel/DayStart/Label"); bagBtnLabel = dayStartLabel != null ? dayStartLabel.GetComponent<TextMeshProUGUI>() : null;
 
             choiceArea    = c.Find("EventPanel/Card/ChoiceArea").GetComponent<RectTransform>();
             cardBGChoice  = c.Find("EventPanel/Card/CardBG_Choice")?.gameObject;
@@ -147,10 +154,11 @@ namespace SeoulLast
             itemImg = c.Find("EventPanel/Item").GetComponent<Image>();
             for (int i = 0; i < 4; i++)
             {
-                statusIcon[i] = c.Find("EventPanel/Status_GridLayout/Status" + i).GetComponent<Image>();
-                statusLabel[i] = c.Find("EventPanel/Status_GridLayout/Status" + i + "/L").GetComponent<TextMeshProUGUI>();
+                var iconGO = c.Find("EventPanel/Status_GridLayout/Icon_" + i);
+                statusIcon[i] = iconGO != null ? iconGO.GetComponent<MY_UIIcon_Script>() : null;
+                var lblGO = c.Find("EventPanel/Status_GridLayout/Icon_" + i + "/Icon_Image"); statusLabel[i] = lblGO != null ? lblGO.GetComponent<TextMeshProUGUI>() : null;
             }
-            bagToggleBtn = c.Find("EventPanel/BagToggle").GetComponent<Button>();
+            var bagToggleGO = c.Find("BagPanel/BagToggle") ?? c.Find("EventPanel/BagToggle"); bagToggleBtn = bagToggleGO != null ? bagToggleGO.GetComponent<Button>() : null;
             // Spine 캐릭터(있으면) — timeScale 제어용 캐싱(리플렉션, Spine 의존 회피)
             var csT = c.Find("EventPanel/CharSpine");
             if (csT != null)
@@ -176,13 +184,17 @@ namespace SeoulLast
 
             Wire(c, "StartPanel/StartBtn", OnStartBtn);
             Wire(c, "CutscenePanel/CutNext", BeginOnboarding);
-            Wire(c, "BagPanel/DayStart", BagDone);
+            if (c.Find("BagPanel/DayStart") != null) Wire(c, "BagPanel/DayStart", BagDone);
             Wire(c, "BagPanel/UseBtn", OnUseBtn);
-            Wire(c, "EventPanel/BagToggle", OnBagToggle);
+            if (c.Find("BagPanel/BagToggle") != null) Wire(c, "BagPanel/BagToggle", OnBagToggle);
+            else if (c.Find("EventPanel/BagToggle") != null) Wire(c, "EventPanel/BagToggle", OnBagToggle);
             Wire(c, "RestPanel/RestBag", () => ShowBag(ShowRest, "휴식으로 →"));
             Wire(c, "RestPanel/RestMap", ShowMap);
             Wire(c, "EndingPanel/EndingPanelBtn", Restart);
             Wire(c, "GameOverPanel/GameOverPanelBtn", Restart);
+            transition = c.GetComponentInChildren<SeoulLast.ScreenSpeedTransition>(true);
+            var nextBtnGO = c.Find("EventPanel/Card/CardBG_Result/NextBtn");
+            if (nextBtnGO != null) { nextBtn = nextBtnGO.GetComponent<Button>(); nextBtn?.onClick.AddListener(OnNextBtn); }
         }
 
         void Wire(Transform root, string path, UnityEngine.Events.UnityAction action)
@@ -222,16 +234,28 @@ namespace SeoulLast
         }
 
         // 가방 정비 화면. onDone = 완료 버튼 동작, label = 버튼 문구
-        void ShowBag(System.Action onDone, string label)
+        void ShowBag(System.Action onDone, string label, bool byItem = false)
         {
             bagOnDone = onDone;
+            bagOpenedByItem = byItem;
             selectedItem = null;
             if (bagBtnLabel != null) bagBtnLabel.text = label;
             BuildBagScreen();
-            Only(bagPanel);
+            if (bagPanelRT == null) InitBagPanelPos();
+            bagPanel.SetActive(true);
+            StartCoroutine(SlideBagCo(true));
         }
 
-        void BagDone() { var a = bagOnDone; bagOnDone = null; if (a != null) a(); }
+        void BagDone()
+        {
+            if (isSlidingBag) return;
+            isSlidingBag = true;
+            // 아이템 획득 컨텍스트일 때만 하강 후 다음 진행
+            System.Action afterSlide = bagOpenedByItem
+                ? () => { var a = bagOnDone; bagOnDone = null; bagOpenedByItem = false; if (a != null) a(); }
+                : (System.Action)(() => { bagOnDone = null; bagOpenedByItem = false; });
+            StartCoroutine(SlideBagCo(false, afterSlide));
+        }
 
         // 그리드/트레이의 아이템 뷰를 모델에서 새로 생성
         void BuildBagScreen()
@@ -380,6 +404,41 @@ namespace SeoulLast
             tray.Remove(item.Model);
             Destroy(item.gameObject);
             LayoutTrayOnly(); UpdateUseButton(); UpdateBagInfo();
+        }
+
+        void InitBagPanelPos()
+        {
+            bagPanelRT = bagPanel?.GetComponent<RectTransform>();
+            if (bagPanelRT == null) return;
+            float panelH = bagPanelRT.sizeDelta.y;
+            // pivot(0.5,0), anchor(0,0)~(1,0) 기준
+            // anchoredPos.y = 0 → 패널 하단이 화면 하단에 딱 맞음 (표시 위치)
+            // anchoredPos.y = -(panelH + 50) → 완전히 화면 아래 (숨김 위치)
+            bagShownY  = 0f;
+            bagHiddenY = -(panelH + 50f);
+            bagPanelRT.anchoredPosition = new Vector2(0f, bagHiddenY);
+        }
+
+        System.Collections.IEnumerator SlideBagCo(bool show, System.Action onDone = null)
+        {
+            if (bagPanelRT == null) { isSlidingBag = false; onDone?.Invoke(); yield break; }
+            float duration = show ? 0.30f : 0.25f;
+            float startY   = bagPanelRT.anchoredPosition.y;
+            float endY     = show ? bagShownY : bagHiddenY;
+            float elapsed  = 0f;
+            if (show) bagPanel.SetActive(true);
+            while (elapsed < duration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float t    = Mathf.Clamp01(elapsed / duration);
+                float ease = show ? (1f - Mathf.Pow(1f - t, 3f)) : (t * t * (3f - 2f * t));
+                bagPanelRT.anchoredPosition = new Vector2(bagPanelRT.anchoredPosition.x, Mathf.Lerp(startY, endY, ease));
+                yield return null;
+            }
+            bagPanelRT.anchoredPosition = new Vector2(bagPanelRT.anchoredPosition.x, endY);
+            if (!show) { bagPanel.SetActive(false); }
+            else isSlidingBag = false;
+            onDone?.Invoke();
         }
 
         // 다음 이벤트 재생 (forcedNextId 또는 "random" 해석). 정해진 게 없으면 휴식.
@@ -695,13 +754,15 @@ namespace SeoulLast
             {
                 if (statusIcon[i] == null) continue;
                 int lv = Level(status[i]);
-                statusIcon[i].gameObject.SetActive(lv > 0);
-                if (lv > 0)
-                {
-                    statusIcon[i].color = lv == 2 ? new Color(0.88f, 0.26f, 0.22f) : new Color(0.92f, 0.74f, 0.22f);
-                    if (statusLabel[i] != null) statusLabel[i].text = StatRail[i] + (lv == 2 ? " !!" : " !");
-                }
+                if (lv == 0) { statusIcon[i].Hide_Icon(); statusLevel[i] = 0; }
+                else { bool upgraded = (lv == 2); if (statusLevel[i] == 0 || statusLevel[i] < lv) statusIcon[i].Show_Icon(upgraded); if (statusLabel[i] != null) statusLabel[i].text = StatRail[i] + (lv == 2 ? " !!" : " !"); statusLevel[i] = lv; }
             }
+        }
+
+        void OnNextBtn()
+        {
+            if (nextBtn != null) nextBtn.gameObject.SetActive(false);
+            TransitionThenPlay();
         }
 
         void OnBagToggle()
@@ -749,7 +810,7 @@ namespace SeoulLast
                 // 아이템이 하단 가방으로 날아간 뒤 지급 → 가방 정비
                 string spawn = curDialog != null ? curDialog.spawnItemId : "";
                 if (eventCard != null) eventCard.gameObject.SetActive(false);
-                StartCoroutine(FlyItemToBag(() => { GrantObjectItem(spawn); ShowBag(() => StartDialog(next), "계속 →"); }));
+                StartCoroutine(FlyItemToBag(() => { GrantObjectItem(spawn); ShowBag(() => StartDialog(next), "계속 →", byItem: true); }));
             }
             else
                 StartDialog(next);
@@ -1271,9 +1332,9 @@ namespace SeoulLast
             // 좌측 상태 레일 (평소 숨김)
             for (int i = 0; i < 4; i++)
             {
-                var ic = UIFactory.Img(p.transform, "Status" + i, new Color(1, 1, 1, 0.95f)); ic.raycastTarget = false;
+                var ic = UIFactory.Img(p.transform, "Icon_" + i, new Color(1, 1, 1, 0.95f)); ic.raycastTarget = false;
                 UIFactory.SetRect(ic.rectTransform, 18, 150 + i * 116, 96, 96);
-                statusIcon[i] = ic;
+                statusIcon[i] = ic.gameObject.AddComponent<MY_UIIcon_Script>();
                 var l = UIFactory.Label(ic.transform, "L", StatRail[i], 18, TextAlignmentOptions.Bottom, Color.white);
                 UIFactory.Fill(l.rectTransform); l.raycastTarget = false;
                 statusLabel[i] = l;
@@ -1307,3 +1368,4 @@ namespace SeoulLast
         void Only(GameObject panel) { HideAll(); if (panel) panel.SetActive(true); }
     }
 }
+
