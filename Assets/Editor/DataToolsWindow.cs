@@ -383,6 +383,7 @@ namespace SeoulLast.EditorTools
                 string floorStr = Get(row, col, "Floor");
                 if (string.IsNullOrEmpty(floorStr)) floorStr = Get(row, col, "LocationFloor");
                 loc.floor = ParseInt(floorStr);
+                loc.assetName = Get(row, col, "LocationAssetName");
                 loc.isLock = ParseBool(Get(row, col, "LocationIsLock"));
                 loc.visitCount = ParseInt(Get(row, col, "LocationVisitCount"));
                 loc.description = Get(row, col, "LocationDescription");

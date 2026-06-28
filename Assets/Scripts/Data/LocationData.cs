@@ -12,5 +12,6 @@ namespace SeoulLast.Data
         public bool isLock;                          // LocationIsLock (true=잠김)
         public int visitCount;                       // LocationVisitCount
         [TextArea(2, 4)] public string description;  // LocationDescription
+        public string assetName;                     // LocationAssetName (배경 이미지 파일명, art/Backgrond)
     }
 }

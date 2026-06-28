@@ -1021,6 +1021,38 @@ namespace SeoulLast
         // 휴식 화면 제거 — 이벤트 종료 후 곧바로 지도(MapPanel)로 이동
         void ShowRest() { ShowMap(); }
 
+        LocationData FindLocation(string id)
+        {
+            if (locations == null || string.IsNullOrEmpty(id)) return null;
+            foreach (var l in locations) if (l != null && l.locationId == id) return l;
+            return null;
+        }
+
+        // 선택 지역의 LocationAssetName으로 이벤트 배경(bgRaw) 교체
+        void ApplyAreaBackground(string locId)
+        {
+            if (bgRaw == null) return;
+            var loc = FindLocation(locId);
+            var tex = loc != null ? LoadAreaBg(loc.assetName) : null;
+            if (tex != null) { bgRaw.texture = tex; bgRaw.color = Color.white; }
+        }
+
+        // art/Backgrond 에서 배경 텍스처 로드. Resources 우선(빌드 대응), 에디터는 직접 경로.
+        Texture2D LoadAreaBg(string assetName)
+        {
+            if (string.IsNullOrEmpty(assetName)) return null;
+            var t = Resources.Load<Texture2D>("Backgrond/" + assetName);
+            if (t != null) return t;
+#if UNITY_EDITOR
+            foreach (var ext in new[] { ".png", ".jpg", ".jpeg" })
+            {
+                var tx = UnityEditor.AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/art/Backgrond/" + assetName + ext);
+                if (tx != null) return tx;
+            }
+#endif
+            return null;
+        }
+
         // 지도에서 장소 선택 → 다음 스테이지 시작 (첫 이벤트 = 그 장소 시나리오)
         void StartStage(string locId, string locName)
         {
@@ -1028,6 +1060,7 @@ namespace SeoulLast
             stageRegion = locId;          // 매칭 키 = LocationID (이벤트 EventRegion과 일치)
             stageLocationName = locName;  // 표시명
             eventsThisStage = 0;
+            ApplyAreaBackground(locId);   // 선택 지역의 배경 이미지로 교체
             // 1 Day(스테이지)마다 허기·갈증 악화(+5). 100 도달 시 사망.
             status[0] = Clamp(status[0] + 5);
             status[1] = Clamp(status[1] + 5);
@@ -1043,11 +1076,14 @@ namespace SeoulLast
             EnsureMapGoButton();
             selLocId = null; selLocName = null;
             if (mapGoBtn != null) mapGoBtn.SetActive(false);
+            // 맵 이미지가 버튼을 가리지 않도록 맨 뒤로 + 클릭 통과
+            var miT = mapPanel.transform.Find("MapImg");
+            if (miT != null) { miT.SetAsFirstSibling(); var mig = miT.GetComponent<UnityEngine.UI.Graphic>(); if (mig != null) mig.raycastTarget = false; }
             for (int i = mapArea.childCount - 1; i >= 0; i--) Destroy(mapArea.GetChild(i).gameObject);
 
-            // 존재하는 층 목록(오름차순)
+            // 존재하는 층 목록(오름차순). 4·5층은 없으므로 1~3층만.
             var floors = new SortedSet<int>();
-            if (locations != null) foreach (var l in locations) if (l != null) floors.Add(FloorOf(l));
+            if (locations != null) foreach (var l in locations) if (l != null) { int fl = FloorOf(l); if (fl >= 1 && fl <= 3) floors.Add(fl); }
             if (floors.Count == 0) { Only(mapPanel); return; }
 
             // 상단: 층 탭 버튼 한 줄 (1층/2층/3층 …)
