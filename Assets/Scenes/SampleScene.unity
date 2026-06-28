@@ -8120,6 +8120,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 99baf728f04ef194ea06824c43abe5ef, type: 2}
   - {fileID: 11400000, guid: 2bf338e79f5697e49808bb26cdcd2de5, type: 2}
   uiFont: {fileID: 11400000, guid: 5ecc810b4f32a9b4cb63491e1f723720, type: 2}
+  idleSkeletonData: {fileID: 11400000, guid: 6ceae3d963b2b4978aaae314e009fadb, type: 2}
   speechFrames:
   - {fileID: 21300000, guid: a53140186568246e39d0f5a3a54a46c7, type: 3}
   - {fileID: 21300000, guid: c87ad1c360f40403187617136e7095fe, type: 3}

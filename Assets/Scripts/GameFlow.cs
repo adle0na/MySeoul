@@ -95,6 +95,9 @@ namespace SeoulLast
         Component charSpine;            // Spine 걷기 SkeletonGraphic (리플렉션 제어)
         System.Reflection.FieldInfo spineTimeScale;
         GameObject charSpineIdleGO;     // Spine 정면 idle SkeletonGraphic (O001-01~08용, 토글)
+        // idle 스켈레톤 데이터(NPYGchan SkeletonDataAsset). 씬 GameObject는 FlowCanvas 재빌드 시
+        // 유실되므로, 이 참조로 런타임에 CharSpineIdle을 생성한다. (Spine 의존 회피 위해 Object로 보관)
+        [SerializeField] UnityEngine.Object idleSkeletonData;
 
         // ---- 이벤트 연출 FX (머리 위 말풍선/느낌표, 우측 연기) ----
         [Header("이벤트 연출 스프라이트(프레임)")]
@@ -599,8 +602,35 @@ namespace SeoulLast
         // idle(정면) 스켈레톤 ↔ walk 스켈레톤 전환
         void SetCharMode(bool idle)
         {
-            if (charSpine != null) charSpine.gameObject.SetActive(!idle);
+            bool haveIdle = charSpineIdleGO != null;
+            // idle을 원하지만 idle 스켈레톤이 없으면, walk를 끄지 않고 그대로 보여준다(캐릭터 사라짐 방지)
+            if (charSpine != null) charSpine.gameObject.SetActive(!idle || !haveIdle);
             if (charSpineIdleGO != null) charSpineIdleGO.SetActive(idle);
+        }
+
+        // CharSpineIdle이 씬에 없으면 idleSkeletonData로 런타임 생성(리플렉션, Spine 의존 회피)
+        void EnsureCharIdle()
+        {
+            if (charSpineIdleGO != null || idleSkeletonData == null || eventPanel == null) return;
+            var sgType = System.Type.GetType("Spine.Unity.SkeletonGraphic, spine-unity");
+            if (sgType == null) return;
+            var mNew = sgType.GetMethod("NewSkeletonGraphicGameObject",
+                System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+            if (mNew == null) return;
+            var sgi = mNew.Invoke(null, new object[] { idleSkeletonData, eventPanel.transform, null }) as Component;
+            if (sgi == null) return;
+            sgi.gameObject.name = "CharSpineIdle";
+            sgType.GetField("startingAnimation")?.SetValue(sgi, "robi_idle");
+            sgType.GetField("startingLoop")?.SetValue(sgi, true);
+            sgType.GetMethod("Initialize", new[] { typeof(bool) })?.Invoke(sgi, new object[] { true });
+            var rti = sgType.GetProperty("rectTransform")?.GetValue(sgi) as RectTransform;
+            if (rti != null)
+            {
+                rti.anchorMin = new Vector2(0, 1); rti.anchorMax = new Vector2(0, 1); rti.pivot = new Vector2(0.5f, 0f);
+                rti.localScale = Vector3.one * 0.6f; rti.anchoredPosition = new Vector2(300, -1090);
+            }
+            charSpineIdleGO = sgi.gameObject;
+            charSpineIdleGO.SetActive(false);
         }
 
         // 머리 위 말풍선/느낌표, (아이템 이벤트면) 우측 연기와 함께 아이템 등장 → 카드/텍스트
@@ -699,6 +729,7 @@ namespace SeoulLast
         void EnsureFxObjects()
         {
             if (eventPanel == null) return;
+            EnsureCharIdle();   // idle 스켈레톤이 씬에서 유실됐으면 런타임 생성
             var ep = eventPanel.transform;
             if (overheadFx == null)
             {
