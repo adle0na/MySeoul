@@ -69,6 +69,8 @@ namespace SeoulLast
         Button useBtn; TextMeshProUGUI useBtnLabel; PlacedItem selectedItem;
         GameObject dayStartGO;          // 가방 '계속/닫기' 버튼(씬에서 비활성일 수 있어 ShowBag에서 활성화)
         System.Action bagOnDone;        // 가방 정비 완료 시 동작(맥락별)
+        GameObject nextEventBtn;        // 이벤트 화면 하단 '다음' 버튼(런타임 생성, 가방 닫은 뒤 진행)
+        string pendingNextId;           // 다음 버튼이 진행할 대화/이벤트 id
         RectTransform bagPanelRT;
         float bagHiddenY;
         float bagShownY;
@@ -256,28 +258,23 @@ namespace SeoulLast
             StartCoroutine(SlideBagCo(true));
         }
 
-        void BagDone()
+        void BagDone() { CloseBag(); }
+
+        // 가방 닫기(공통): 미배치 잔여 아이템 폐기 → 슬라이드 다운 → 닫힘 콜백 실행
+        void CloseBag()
         {
-            if (isSlidingBag) return;
+            if (isSlidingBag || bagPanel == null || !bagPanel.activeSelf) return;
             isSlidingBag = true;
-
-            // [Task4-조건2·3] 아이템 획득 컨텍스트에서 버튼으로 닫을 때, 미배치(공간없음 포함) 잔여 아이템 제거
-            if (bagOpenedByItem && tray.Count > 0)
-            {
-                if (trayRect != null)
-                    for (int i = trayRect.childCount - 1; i >= 0; i--)
-                    {
-                        var ch = trayRect.GetChild(i);
-                        if (ch.GetComponent<InvItemView>() != null) Destroy(ch.gameObject);
-                    }
-                tray.Clear();
-            }
-
-            // 아이템 획득 컨텍스트일 때만 하강 후 다음 진행
-            System.Action afterSlide = bagOpenedByItem
-                ? () => { var a = bagOnDone; bagOnDone = null; bagOpenedByItem = false; if (a != null) a(); }
-                : (System.Action)(() => { bagOnDone = null; bagOpenedByItem = false; });
-            StartCoroutine(SlideBagCo(false, afterSlide));
+            // 트레이에 남은(가방에 안 넣은) 아이템은 폐기
+            if (trayRect != null)
+                for (int i = trayRect.childCount - 1; i >= 0; i--)
+                {
+                    var ch = trayRect.GetChild(i);
+                    if (ch.GetComponent<InvItemView>() != null) Destroy(ch.gameObject);
+                }
+            tray.Clear();
+            var onDone = bagOnDone; bagOnDone = null; bagOpenedByItem = false;
+            StartCoroutine(SlideBagCo(false, () => { if (onDone != null) onDone(); }));
         }
 
         // 그리드/트레이의 아이템 뷰를 모델에서 새로 생성
@@ -414,14 +411,7 @@ namespace SeoulLast
             item.InBag = true;
             item.AttachToBag(origin);
             LayoutTrayOnly(); UpdateUseButton(); UpdateBagInfo();
-            // [Task4-조건1] 아이템 획득 컨텍스트에서 트레이를 모두 비우면 자동으로 다음 단계
-            if (bagOpenedByItem && tray.Count == 0) StartCoroutine(AutoBagDone());
-        }
-
-        IEnumerator AutoBagDone()
-        {
-            yield return null;   // 1프레임 대기(배치 콜백 정리 후)
-            if (bagOpenedByItem && !isSlidingBag && tray.Count == 0) BagDone();
+            // (가방에 넣어도 자동 닫지 않음 — 유저가 직접 닫기/다음으로 진행)
         }
 
         public void MoveToStorage(InvItemView item)
@@ -746,6 +736,50 @@ namespace SeoulLast
                 UIFactory.SetRect(pungFx.rectTransform, 805, 805, 240, 240);
                 pungFx.raycastTarget = false; pungFx.gameObject.SetActive(false);
             }
+            EnsureTray();
+            EnsureNextButton();
+        }
+
+        // 트레이가 씬에 없으면(그리드 전용 새 BagPanel) 런타임 생성. 가방 상단 스트립에 배치.
+        void EnsureTray()
+        {
+            if (trayRect != null || bagPanel == null) return;
+            var bg = UIFactory.Img(bagPanel.transform, "ItemTray", new Color(0f, 0f, 0f, 0.30f));
+            var rt = bg.rectTransform;
+            rt.anchorMin = new Vector2(0f, 1f); rt.anchorMax = new Vector2(0f, 1f); rt.pivot = new Vector2(0f, 1f);
+            rt.sizeDelta = new Vector2(900f, 240f);
+            rt.anchoredPosition = new Vector2(90f, -20f);
+            bg.raycastTarget = false;
+            rt.SetAsLastSibling();          // 그리드 위에 보이도록
+            trayRect = rt;
+        }
+
+        // 이벤트 화면 하단 '다음' 버튼 런타임 생성(숨김). 가방 닫은 뒤 진행용.
+        void EnsureNextButton()
+        {
+            if (nextEventBtn != null || eventPanel == null) return;
+            TextMeshProUGUI lbl;
+            var btn = UIFactory.Button(eventPanel.transform, "NextEventBtn", "다음 →",
+                new Color(0.85f, 0.55f, 0.25f), OnNextEventBtn, out lbl);
+            UIFactory.SetRect(btn.GetComponent<RectTransform>(), (W - 520) / 2f, 2120, 520, 150);
+            lbl.fontSize = 44;
+            nextEventBtn = btn.gameObject;
+            nextEventBtn.transform.SetAsLastSibling();
+            nextEventBtn.SetActive(false);
+        }
+
+        void ShowNextButton(string nextId)
+        {
+            EnsureNextButton();
+            pendingNextId = nextId;
+            if (nextEventBtn != null) { nextEventBtn.SetActive(true); nextEventBtn.transform.SetAsLastSibling(); }
+        }
+
+        void OnNextEventBtn()
+        {
+            if (nextEventBtn != null) nextEventBtn.SetActive(false);
+            var n = pendingNextId; pendingNextId = null;
+            StartDialog(n);
         }
 
         // ---------- 텍스트 타이핑 연출 (터치 시 스킵) ----------
@@ -847,13 +881,8 @@ namespace SeoulLast
         void OnBagToggle()
         {
             if (isSlidingBag) return;   // 슬라이드 중 중복 입력 무시
-            // 토글로 열려 있으면(아이템 획득 컨텍스트가 아니면) 내린다
-            if (bagPanel != null && bagPanel.activeSelf && !bagOpenedByItem)
-            {
-                isSlidingBag = true;
-                StartCoroutine(SlideBagCo(false));
-                return;
-            }
+            // 열려 있으면 닫기(닫힘 콜백 실행 → 아이템 컨텍스트면 다음 버튼 표시), 닫혀 있으면 열기
+            if (bagPanel != null && bagPanel.activeSelf) { CloseBag(); return; }
             ShowBag(() => { Only(eventPanel); if (eventCard != null) eventCard.gameObject.SetActive(true); }, "닫기 ▼");
         }
 
@@ -894,10 +923,11 @@ namespace SeoulLast
             string next = c.nextEventId;   // 다음 대화 id ("Done"/빈값 = 이벤트 종료)
             if (c.opensInventory)
             {
-                // 아이템이 하단 가방으로 날아간 뒤 지급 → 가방 정비
+                // 아이템이 하단으로 날아간 뒤 → 가방이 올라오며 트레이에 부착(유저가 넣을지 선택)
+                // → 가방 닫으면 '다음' 버튼으로 진행
                 string spawn = curDialog != null ? curDialog.spawnItemId : "";
                 if (eventCard != null) eventCard.gameObject.SetActive(false);
-                StartCoroutine(FlyItemToBag(() => { GrantObjectItem(spawn); ShowBag(() => StartDialog(next), "계속 →", byItem: true); }));
+                StartCoroutine(FlyItemToBag(() => { GrantObjectItem(spawn); ShowBag(() => ShowNextButton(next), "닫기 ▼", byItem: true); }));
             }
             else
                 StartDialog(next);
@@ -956,23 +986,8 @@ namespace SeoulLast
             if (string.IsNullOrEmpty(itemId)) return;
             var d = FindItemData(itemId);
             if (d == null) { Debug.LogWarning($"[GameFlow] 아이템 데이터 없음: {itemId} (Items 배열/시트 확인)"); return; }
-            var item = new PlacedItem(DefFromItemData(d));
-            // 트레이 정비 UI가 있으면 트레이로, 없으면(그리드 전용 새 디자인) 그리드에 자동 배치 → 가방에서 바로 보임
-            if (trayRect != null) tray.Add(item);
-            else AutoPlaceInBag(item);
-        }
-
-        // 활성 그리드 영역에서 빈칸을 찾아 자동 배치 (정비 트레이가 없는 새 디자인용)
-        void AutoPlaceInBag(PlacedItem item)
-        {
-            int o = bag.ActiveOffset, s = bag.ActiveSize;
-            for (int y = o; y < o + s; y++)
-                for (int x = o; x < o + s; x++)
-                {
-                    var origin = new Vector2Int(x, y);
-                    if (bag.CanPlace(item.Def, origin, null)) { bag.PlaceAt(item, origin); return; }
-                }
-            bag.PlaceAt(item, new Vector2Int(o, o));   // 자리 없으면 분실 방지로 일단 추가
+            // 획득 아이템은 항상 트레이로(자동 장착 X). 유저가 가방에 넣을지 선택.
+            tray.Add(new PlacedItem(DefFromItemData(d)));
         }
 
         void AfterEventResolve(string nextId)
