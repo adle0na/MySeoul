@@ -133,7 +133,7 @@ namespace SeoulLast
             endingPanel = c.Find("EndingPanel").gameObject;
             gameOverPanel = c.Find("GameOverPanel").gameObject;
 
-            bagBody = c.Find("BagPanel/Info").GetComponent<TextMeshProUGUI>();
+            bagBody = c.Find("BagPanel/Info")?.GetComponent<TextMeshProUGUI>();
             eventTitle = c.Find("EventPanel/Card/TextBox/T").GetComponent<TextMeshProUGUI>();
             eventBody = c.Find("EventPanel/Card/B").GetComponent<TextMeshProUGUI>();
             if (eventBody != null) eventBody.raycastTarget = false;   // 본문 텍스트가 카드 전체를 덮어 클릭 가로채는 것 방지
@@ -174,13 +174,16 @@ namespace SeoulLast
             charSpineIdleGO = ciT != null ? ciT.gameObject : null;
             if (charSpineIdleGO != null) charSpineIdleGO.SetActive(false);
             mapArea = c.Find("MapPanel/MapArea").GetComponent<RectTransform>();
-            gridRect = c.Find("BagPanel/Grid").GetComponent<RectTransform>();
-            slotsRect = c.Find("BagPanel/Slots").GetComponent<RectTransform>();
-            trayRect = c.Find("BagPanel/Tray").GetComponent<RectTransform>();
-            trashZone = c.Find("BagPanel/Trash").GetComponent<RectTransform>();
-            dragLayer = c.Find("BagPanel/DragLayer").GetComponent<RectTransform>();
-            useBtn = c.Find("BagPanel/UseBtn").GetComponent<Button>();
-            useBtnLabel = c.Find("BagPanel/UseBtn/Label").GetComponent<TextMeshProUGUI>();
+            // 가방 요소 — 오브젝트가 삭제/이동돼도 NRE 안 나도록 null-safe 바인딩
+            gridRect    = c.Find("BagPanel/Grid")?.GetComponent<RectTransform>();
+            slotsRect   = c.Find("BagPanel/Slots")?.GetComponent<RectTransform>();
+            // Tray는 EventPanel/ItemTray(신규)를 우선, 없으면 BagPanel/Tray(구)로 폴백
+            trayRect    = (c.Find("EventPanel/ItemTray") ?? c.Find("BagPanel/Tray"))?.GetComponent<RectTransform>();
+            trashZone   = c.Find("BagPanel/Trash")?.GetComponent<RectTransform>();
+            // DragLayer는 FlowCanvas 레벨을 우선, 없으면 BagPanel/DragLayer로 폴백
+            dragLayer   = (c.Find("DragLayer") ?? c.Find("BagPanel/DragLayer"))?.GetComponent<RectTransform>();
+            useBtn      = c.Find("BagPanel/UseBtn")?.GetComponent<Button>();
+            useBtnLabel = c.Find("BagPanel/UseBtn/Label")?.GetComponent<TextMeshProUGUI>();
 
             Wire(c, "StartPanel/StartBtn", OnStartBtn);
             Wire(c, "CutscenePanel/CutNext", BeginOnboarding);
@@ -250,6 +253,19 @@ namespace SeoulLast
         {
             if (isSlidingBag) return;
             isSlidingBag = true;
+
+            // [Task4-조건2·3] 아이템 획득 컨텍스트에서 버튼으로 닫을 때, 미배치(공간없음 포함) 잔여 아이템 제거
+            if (bagOpenedByItem && tray.Count > 0)
+            {
+                if (trayRect != null)
+                    for (int i = trayRect.childCount - 1; i >= 0; i--)
+                    {
+                        var ch = trayRect.GetChild(i);
+                        if (ch.GetComponent<InvItemView>() != null) Destroy(ch.gameObject);
+                    }
+                tray.Clear();
+            }
+
             // 아이템 획득 컨텍스트일 때만 하강 후 다음 진행
             System.Action afterSlide = bagOpenedByItem
                 ? () => { var a = bagOnDone; bagOnDone = null; bagOpenedByItem = false; if (a != null) a(); }
@@ -260,22 +276,26 @@ namespace SeoulLast
         // 그리드/트레이의 아이템 뷰를 모델에서 새로 생성
         void BuildBagScreen()
         {
-            for (int i = gridRect.childCount - 1; i >= 0; i--) Destroy(gridRect.GetChild(i).gameObject);
-            for (int i = trayRect.childCount - 1; i >= 0; i--)
-            {
-                var ch = trayRect.GetChild(i);
-                if (ch.GetComponent<InvItemView>() != null) Destroy(ch.gameObject);
-            }
-            foreach (var p in bag.Placed)
-            {
-                var v = NewItemView(p); v.InBag = true;
-                v.transform.SetParent(gridRect, false); v.AttachToBag(p.Origin);
-            }
-            foreach (var p in tray)
-            {
-                var v = NewItemView(p); v.InBag = false;
-                v.transform.SetParent(trayRect, false);
-            }
+            if (gridRect != null)
+                for (int i = gridRect.childCount - 1; i >= 0; i--) Destroy(gridRect.GetChild(i).gameObject);
+            if (trayRect != null)
+                for (int i = trayRect.childCount - 1; i >= 0; i--)
+                {
+                    var ch = trayRect.GetChild(i);
+                    if (ch.GetComponent<InvItemView>() != null) Destroy(ch.gameObject);
+                }
+            if (gridRect != null)
+                foreach (var p in bag.Placed)
+                {
+                    var v = NewItemView(p); v.InBag = true;
+                    v.transform.SetParent(gridRect, false); v.AttachToBag(p.Origin);
+                }
+            if (trayRect != null)
+                foreach (var p in tray)
+                {
+                    var v = NewItemView(p); v.InBag = false;
+                    v.transform.SetParent(trayRect, false);
+                }
             LayoutTrayOnly();
             RecolorSlots();
             UpdateUseButton();
@@ -309,6 +329,7 @@ namespace SeoulLast
         // 트레이 아이템(미배치) 좌→우, 위→아래 배치
         void LayoutTrayOnly()
         {
+            if (trayRect == null) return;
             float pad = 12f, x = pad, y = pad, rowH = 0f, areaW = trayRect.rect.width;
             for (int i = 0; i < trayRect.childCount; i++)
             {
@@ -363,6 +384,7 @@ namespace SeoulLast
 
         void UpdateBagInfo()
         {
+            if (bagBody == null) return;
             string warn = tray.Count > 0
                 ? $"    <color=#e0a060>미배치 {tray.Count}개 — 그리드에 넣지 않으면 버려집니다</color>"
                 : "";
@@ -385,6 +407,14 @@ namespace SeoulLast
             item.InBag = true;
             item.AttachToBag(origin);
             LayoutTrayOnly(); UpdateUseButton(); UpdateBagInfo();
+            // [Task4-조건1] 아이템 획득 컨텍스트에서 트레이를 모두 비우면 자동으로 다음 단계
+            if (bagOpenedByItem && tray.Count == 0) StartCoroutine(AutoBagDone());
+        }
+
+        IEnumerator AutoBagDone()
+        {
+            yield return null;   // 1프레임 대기(배치 콜백 정리 후)
+            if (bagOpenedByItem && !isSlidingBag && tray.Count == 0) BagDone();
         }
 
         public void MoveToStorage(InvItemView item)
