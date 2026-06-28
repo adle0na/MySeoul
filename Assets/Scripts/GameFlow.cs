@@ -453,6 +453,7 @@ namespace SeoulLast
         System.Collections.IEnumerator SlideBagCo(bool show, System.Action onDone = null)
         {
             if (bagPanelRT == null) { isSlidingBag = false; onDone?.Invoke(); yield break; }
+            isSlidingBag = true;   // 슬라이드 동안 재진입(중복 토글) 방지
             float duration = show ? 0.30f : 0.25f;
             float startY   = bagPanelRT.anchoredPosition.y;
             float endY     = show ? bagShownY : bagHiddenY;
@@ -655,12 +656,12 @@ namespace SeoulLast
             {
                 var d = FindItemData(curDialog.spawnItemId);
                 if (d != null && d.icon != null) { itemImg.sprite = d.icon; itemImg.color = Color.white; }
-                CenterInEventPanel(itemImg.rectTransform);   // 화면 중앙에 등장
+                PlaceAtTopHalfCenter(itemImg.rectTransform);   // 상단 영역 중앙에 등장
                 itemImg.rectTransform.localScale = Vector3.zero;
                 itemImg.gameObject.SetActive(true);
             }
             bool hasPung = pungFx != null && pungFrames != null && pungFrames.Length > 0;
-            if (hasPung) { pungFx.sprite = pungFrames[0]; CenterInEventPanel(pungFx.rectTransform); pungFx.gameObject.SetActive(true); }
+            if (hasPung) { pungFx.sprite = pungFrames[0]; PlaceAtTopHalfCenter(pungFx.rectTransform); pungFx.gameObject.SetActive(true); }
             var irt = itemImg != null ? itemImg.rectTransform : null;
             float t = 0, dur = 0.45f, acc = 0; const float ft = 0.1f; int pi = 0;
             while (t < dur)
@@ -674,14 +675,17 @@ namespace SeoulLast
             if (pungFx != null) pungFx.gameObject.SetActive(false);
         }
 
-        // RectTransform을 부모(EventPanel) 중앙에 배치 (앵커/피벗 (0,1) 기준)
-        void CenterInEventPanel(RectTransform rt)
+        // RectTransform을 부모(EventPanel) '상단 영역(상반부) 중앙'에 배치.
+        // 1080×2400 기준: 가로 중앙(540), 세로는 상반부 중앙(상단에서 ph/4 = 600).
+        void PlaceAtTopHalfCenter(RectTransform rt)
         {
             if (rt == null) return;
             var prt = rt.parent as RectTransform;
             float pw = prt != null ? prt.rect.width : W;
-            float ph = prt != null ? prt.rect.height : 1920f;
-            rt.anchoredPosition = new Vector2(pw * 0.5f - rt.sizeDelta.x * 0.5f, -(ph * 0.5f - rt.sizeDelta.y * 0.5f));
+            float ph = prt != null ? prt.rect.height : 2400f;
+            // 앵커/피벗을 좌상단(0,1)으로 고정 후, 좌상단 코너 = 목표중심 - 크기/2
+            rt.anchorMin = new Vector2(0f, 1f); rt.anchorMax = new Vector2(0f, 1f); rt.pivot = new Vector2(0f, 1f);
+            rt.anchoredPosition = new Vector2(pw * 0.5f - rt.sizeDelta.x * 0.5f, -(ph * 0.25f - rt.sizeDelta.y * 0.5f));
         }
 
         // 0→1 살짝 튀는 back-out 이징(뿅)
@@ -808,6 +812,14 @@ namespace SeoulLast
 
         void OnBagToggle()
         {
+            if (isSlidingBag) return;   // 슬라이드 중 중복 입력 무시
+            // 토글로 열려 있으면(아이템 획득 컨텍스트가 아니면) 내린다
+            if (bagPanel != null && bagPanel.activeSelf && !bagOpenedByItem)
+            {
+                isSlidingBag = true;
+                StartCoroutine(SlideBagCo(false));
+                return;
+            }
             ShowBag(() => { Only(eventPanel); if (eventCard != null) eventCard.gameObject.SetActive(true); }, "닫기 ▼");
         }
 
