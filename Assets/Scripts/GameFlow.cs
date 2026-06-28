@@ -118,7 +118,7 @@ namespace SeoulLast
         {
             if (uiFont != null) UIFactory.Override = uiFont;   // 런타임 텍스트 한글 폰트
             // 6x6 그리드, 중앙 2x2 활성(Stage 1). 나머지 칸은 딤(배치 불가).
-            bag.Width = GRID_W; bag.Height = GRID_H; bag.FullGrid = false; bag.Stage = 1;
+            bag.Width = GRID_W; bag.Height = GRID_H; bag.FullGrid = false; bag.Stage = 2;   // 시작부터 2레벨(중앙 3x3)
             // 씬에 미리 배치된 FlowCanvas가 있으면 그걸 바인딩(UI 개발자 작업물), 없으면 코드로 생성(폴백)
             var existing = GameObject.Find("FlowCanvas");
             if (existing != null && existing.transform.Find("StartPanel") != null)
