@@ -86,7 +86,7 @@ namespace SeoulLast.EditorTools
             var rt = sg.rectTransform;
             rt.anchorMin = new Vector2(0, 1); rt.anchorMax = new Vector2(0, 1); rt.pivot = new Vector2(0.5f, 0f);
             rt.localScale = Vector3.one * 0.6f;
-            rt.anchoredPosition = new Vector2(-120, -700);   // 캐릭터 자리(에디터에서 미세조정)
+            rt.anchoredPosition = new Vector2(160, -1100);   // 걷기 캐릭터 자리(에디터에서 미세조정)
 
             // 정면 idle 스켈레톤 (O001-01~08 등 정지 장면용). 기본 비활성, 위치는 walk와 동일.
             var oldIdle = ep.Find("CharSpineIdle"); if (oldIdle != null) Object.DestroyImmediate(oldIdle.gameObject);
