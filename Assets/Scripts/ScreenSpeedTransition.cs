@@ -6,9 +6,9 @@ using UnityEngine.UI;
 namespace SeoulLast
 {
     /// <summary>
-    /// Speed Wipe / Glitch 화면 전환 연출.
-    /// Play() 호출 → 우→좌 고속 스윕으로 화면 장악 → onCovered 콜백(씬 교체 등)
-    ///             → 좌측으로 빠져나감 → onComplete 콜백.
+    /// Speed Wipe 화면 전환 연출.
+    /// 덮기: 우→좌 스윕 (Progress 0→1)
+    /// 걷히기: 덮기의 역재생 (Progress 1→0) → 좌측부터 사라져 우측이 마지막으로 나타남
     /// </summary>
     public class ScreenSpeedTransition : MonoBehaviour
     {
@@ -18,18 +18,17 @@ namespace SeoulLast
         [SerializeField] Material      transitionMaterial;
 
         [Header("Timing (seconds)")]
-        [SerializeField] float coverDuration = 0.22f;   // 덮는 시간
-        [SerializeField] float holdDuration  = 0.07f;   // 완전히 덮인 시간
-        [SerializeField] float clearDuration = 0.22f;   // 걷히는 시간
+        [SerializeField] float coverDuration = 0.40f;   // 덮는 시간
+        [SerializeField] float holdDuration  = 0.70f;   // 완전히 덮인 유지 시간
+        [SerializeField] float clearDuration = 0.40f;   // 걷히는 시간 (역재생)
 
         [Header("Shader Params")]
         [SerializeField] float intensity = 1.8f;
         [SerializeField] float speed     = 8.0f;
 
         [Header("Options")]
-        [SerializeField] bool useUnscaledTime = true;   // TimeScale 0 에서도 동작
+        [SerializeField] bool useUnscaledTime = true;
 
-        // 런타임 머티리얼 인스턴스
         Material _mat;
         Coroutine _seq;
 
@@ -39,7 +38,6 @@ namespace SeoulLast
 
         void Awake()
         {
-            // 공유 머티리얼 수정 금지 → 인스턴스 생성
             if (transitionMaterial != null)
                 _mat = Instantiate(transitionMaterial);
 
@@ -49,39 +47,30 @@ namespace SeoulLast
                 overlayImage.raycastTarget = false;
             }
 
-            SetProgress(0f);  // Progress=0 = 완전 투명, 오브젝트는 항상 활성
+            SetProgress(0f);
         }
 
-        // ── 공개 API ─────────────────────────────────────────────────
-        /// <summary>
-        /// 전환 연출을 재생한다.
-        /// </summary>
-        /// <param name="onCovered"> 화면이 완전히 가려진 순간 호출 </param>
-        /// <param name="onComplete"> 연출 완전 종료 후 호출 </param>
         public void Play(Action onCovered = null, Action onComplete = null)
         {
             if (_seq != null) StopCoroutine(_seq);
             _seq = StartCoroutine(Sequence(onCovered, onComplete));
         }
 
-        // ── 내부 ─────────────────────────────────────────────────────
         IEnumerator Sequence(Action onCovered, Action onComplete)
         {
-            // 초기화
+            // ── 1단계: 덮기 우→좌 (Progress 0→1, EaseOutCubic) ──────
             SetProgress(0f);
-
-            // ── 1단계: 덮기 (Progress 0→1) ──────────────────────────
-            yield return Tween(0f, 1f, coverDuration, EaseOutExpo);
+            yield return Tween(0f, 1f, coverDuration, EaseOutCubic);
 
             // ── 2단계: 홀드 ──────────────────────────────────────────
             onCovered?.Invoke();
             yield return Wait(holdDuration);
 
-            // ── 3단계: 걷히기 (Progress 1→0) ─────────────────────────
-            yield return Tween(1f, 0f, clearDuration, EaseInExpo);
+            // ── 3단계: 걷히기 역재생 (Progress 1→0, EaseInCubic) ─────
+            // Progress가 줄어들수록 좌측부터 사라짐 → 덮기의 역재생
+            yield return Tween(1f, 0f, clearDuration, EaseInCubic);
 
-            // 종료
-            SetProgress(0f);  // Progress=0 = 완전 투명, 오브젝트는 항상 활성
+            SetProgress(0f);
             _seq = null;
             onComplete?.Invoke();
         }
@@ -119,17 +108,11 @@ namespace SeoulLast
         }
 
         // ── Easing ───────────────────────────────────────────────────
-        static float EaseOutExpo(float t) =>
-            t >= 1f ? 1f : 1f - Mathf.Pow(2f, -10f * t);
-
-        static float EaseInExpo(float t) =>
-            t <= 0f ? 0f : Mathf.Pow(2f, 10f * t - 10f);
+        static float EaseOutCubic(float t) => 1f - Mathf.Pow(1f - t, 3f);
+        static float EaseInCubic(float t)  => t * t * t;
 
 #if UNITY_EDITOR
-        void OnDestroy()
-        {
-            if (_mat != null) Destroy(_mat);
-        }
+        void OnDestroy() { if (_mat != null) Destroy(_mat); }
 #endif
     }
 }

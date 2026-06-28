@@ -108,7 +108,8 @@
                 // Progress가 진행될수록 덮이는 영역 확장
                 // edge = 0이면 완전 노출, 1이면 완전 덮음
                 float edge   = _Progress + noise * _Intensity * 0.2;
-                float mask   = smoothstep(edge - 0.08, edge + 0.04, 1.0 - xCoord);
+                // Progress 0→1: 우→좌 덮기 / Progress 1→0: 역재생(걷히기)
+                float mask   = smoothstep(edge - 0.08, edge + 0.04, xCoord);
 
                 if (mask < 0.001) discard;
 
@@ -119,7 +120,7 @@
                 float sl  = scanline(uv);
 
                 // 경계 근처 에너지 플래시
-                float edgeDist  = saturate(1.0 - abs(xCoord - (1.0 - _Progress)) * 15.0);
+                float edgeDist  = saturate(1.0 - abs(xCoord - _Progress) * 15.0);
                 float flash     = edgeDist * _Intensity;
 
                 // 기본 색상
