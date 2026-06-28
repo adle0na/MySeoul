@@ -79,6 +79,7 @@ namespace SeoulLast
         float bagShownY;
         bool  isSlidingBag;
         bool  bagOpenedByItem;  // true=아이템 획득으로 열림, false=버튼으로 열림
+        BagSkinManager bagSkinManager;  // 가방 이미지 교체 관리자
         SeoulLast.ScreenSpeedTransition transition;
 
         // ---- Explore 화면 (사이드스크롤 연출) ----
@@ -209,6 +210,7 @@ namespace SeoulLast
             Wire(c, "EndingPanel/EndingPanelBtn", Restart);
             Wire(c, "GameOverPanel/GameOverPanelBtn", Restart);
             transition = c.GetComponentInChildren<SeoulLast.ScreenSpeedTransition>(true);
+            bagSkinManager = c.Find("BagPanel")?.GetComponent<BagSkinManager>();
             var nextBtnGO = c.Find("EventPanel/Card/CardBG_Result/NextBtn");
             if (nextBtnGO != null) { nextBtn = nextBtnGO.GetComponent<Button>(); nextBtn?.onClick.AddListener(OnNextBtn); }
         }
@@ -491,6 +493,10 @@ namespace SeoulLast
             if (id == "random") id = ResolveRandom();
             curEvent = string.IsNullOrEmpty(id) ? null : FindEvent(id);
             if (curEvent == null) { ShowRest(); return; }
+            // 가방 업그레이드 이벤트 감지
+            if (curEvent.eventId == "EVT-U001" || curEvent.eventId == "EVT-U002" ||
+                curEvent.eventId == "EVT-U003" || curEvent.eventId == "EVT-U004")
+                bagSkinManager?.LevelUp();
             StartDialog(curEvent.startDialogId);   // 이벤트의 시작 대화부터
         }
 
@@ -993,6 +999,10 @@ namespace SeoulLast
             if (d == null) { Debug.LogWarning($"[GameFlow] 아이템 데이터 없음: {itemId} (Items 배열/시트 확인)"); return; }
             // 획득 아이템은 항상 트레이로(자동 장착 X). 유저가 가방에 넣을지 선택.
             tray.Add(new PlacedItem(DefFromItemData(d)));
+            // 가방 업그레이드 아이템 감지
+            if (itemId == "BAG001" || itemId == "BAG002" ||
+                itemId == "BAG003" || itemId == "BAG004")
+                bagSkinManager?.LevelUp();
         }
 
         void AfterEventResolve(string nextId)
