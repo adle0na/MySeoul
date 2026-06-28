@@ -1042,55 +1042,75 @@ namespace SeoulLast
         {
             EnsureMapGoButton();
             selLocId = null; selLocName = null;
-            if (mapInfoName != null) mapInfoName.text = "";
-            if (mapInfoDesc != null) mapInfoDesc.text = "지역을 선택하세요";
             if (mapGoBtn != null) mapGoBtn.SetActive(false);
             for (int i = mapArea.childCount - 1; i >= 0; i--) Destroy(mapArea.GetChild(i).gameObject);
 
-            // 잠금 해제된 장소를 층(floor)별로 묶는다. 높은 층이 위로 오도록 내림차순.
-            var byFloor = new SortedDictionary<int, List<LocationData>>(
-                Comparer<int>.Create((a, b) => b.CompareTo(a)));
-            if (locations != null)
-                foreach (var l in locations)
-                {
-                    if (l == null) continue;   // 잠금 포함 모든 지역 표시
-                    // floor 데이터가 있으면 층별, 없으면(0) 한 그룹으로 묶어 표시
-                    if (!byFloor.TryGetValue(l.floor, out var list)) { list = new List<LocationData>(); byFloor[l.floor] = list; }
-                    list.Add(l);
-                }
+            // 존재하는 층 목록(오름차순)
+            var floors = new SortedSet<int>();
+            if (locations != null) foreach (var l in locations) if (l != null) floors.Add(FloorOf(l));
+            if (floors.Count == 0) { Only(mapPanel); return; }
 
-            const float areaW = W - 160f;     // mapArea 너비 (SetRect와 일치)
-            const float btnW = 290f, btnH = 110f, gapX = 15f, gapY = 14f, labelH = 56f, floorGap = 30f;
-            int perRow = Mathf.Max(1, Mathf.FloorToInt((areaW + gapX) / (btnW + gapX)));   // 한 줄 버튼 수(=3)
-            float y = 0f; int shown = 0;
-
-            foreach (var kv in byFloor)
+            // 상단: 층 탭 버튼 한 줄 (1층/2층/3층 …)
+            const float areaW = W - 160f, tabGap = 12f, tabH = 110f;
+            int nf = floors.Count;
+            float tabW = (areaW - tabGap * (nf - 1)) / nf;
+            int idx = 0;
+            foreach (var f in floors)
             {
-                // 층 라벨 ("3층" 등). 위층부터 한 줄씩.
-                var lab = UIFactory.Label(mapArea, "floorLabel", FloorName(kv.Key), 34, TextAlignmentOptions.Left, new Color(0.85f, 0.88f, 0.95f));
-                UIFactory.SetRect(lab.rectTransform, 0, y, areaW, labelH);
-                y += labelH;
-
-                var list = kv.Value;
-                for (int i = 0; i < list.Count; i++)
-                {
-                    int col = i % perRow, rowIdx = i / perRow;
-                    var loc = list[i];
-                    var col0 = loc.isLock ? new Color(0.28f, 0.30f, 0.34f) : new Color(0.32f, 0.45f, 0.6f);  // 잠금=흐림
-                    TextMeshProUGUI tl; var b = UIFactory.Button(mapArea, "loc", loc.locationName, col0, () => SelectRegion(loc), out tl);
-                    UIFactory.SetRect(b.GetComponent<RectTransform>(), col * (btnW + gapX), y + rowIdx * (btnH + gapY), btnW, btnH);
-                    shown++;
-                }
-                int rows = Mathf.CeilToInt(list.Count / (float)perRow);
-                y += rows * btnH + (rows > 1 ? (rows - 1) * gapY : 0) + floorGap;
+                int ff = f;
+                TextMeshProUGUI tl; var tb = UIFactory.Button(mapArea, "floorTab", FloorName(f), new Color(0.25f, 0.40f, 0.55f), () => RebuildRegions(ff), out tl);
+                UIFactory.SetRect(tb.GetComponent<RectTransform>(), idx * (tabW + tabGap), 0, tabW, tabH);
+                idx++;
             }
 
-            if (shown == 0)
-            {
-                TextMeshProUGUI tl; var b = UIFactory.Button(mapArea, "loc", "어디든 (일반)", new Color(0.32f, 0.45f, 0.6f), () => StartStage("", "어디든"), out tl);
-                UIFactory.SetRect(b.GetComponent<RectTransform>(), 0, 0, 920, 120);
-            }
+            int first = int.MaxValue; foreach (var f in floors) if (f < first) first = f;
+            RebuildRegions(first);   // 첫 층 기본 표시
             Only(mapPanel);
+        }
+
+        int curMapFloor;
+
+        // 선택한 층의 지역 버튼만 다시 그리고, 하단에 그 층 정보 표시
+        void RebuildRegions(int floor)
+        {
+            curMapFloor = floor;
+            selLocId = null; selLocName = null;
+            if (mapGoBtn != null) mapGoBtn.SetActive(false);
+            // 기존 지역 버튼만 제거(층 탭은 유지)
+            for (int i = mapArea.childCount - 1; i >= 0; i--)
+            { var ch = mapArea.GetChild(i); if (ch.name == "loc") Destroy(ch.gameObject); }
+
+            var list = new List<LocationData>();
+            if (locations != null) foreach (var l in locations) if (l != null && FloorOf(l) == floor) list.Add(l);
+
+            const float areaW = W - 160f, btnW = 290f, btnH = 110f, gapX = 15f, gapY = 14f, top = 140f;
+            int perRow = Mathf.Max(1, Mathf.FloorToInt((areaW + gapX) / (btnW + gapX)));
+            for (int i = 0; i < list.Count; i++)
+            {
+                int col = i % perRow, row = i / perRow; var loc = list[i];
+                var c0 = loc.isLock ? new Color(0.28f, 0.30f, 0.34f) : new Color(0.32f, 0.45f, 0.6f);
+                TextMeshProUGUI tl; var b = UIFactory.Button(mapArea, "loc", loc.locationName, c0, () => SelectRegion(loc), out tl);
+                UIFactory.SetRect(b.GetComponent<RectTransform>(), col * (btnW + gapX), top + row * (btnH + gapY), btnW, btnH);
+            }
+
+            // 하단: 선택한 층 정보
+            if (mapInfoName != null) mapInfoName.text = FloorName(floor);
+            if (mapInfoDesc != null)
+            {
+                var names = new List<string>(); foreach (var l in list) names.Add(l.locationName);
+                mapInfoDesc.text = $"지역 {list.Count}곳: " + string.Join(", ", names);
+            }
+        }
+
+        // floor 데이터가 없으면(0) LocationID(LocNNN)에서 층 추정: 1~10=1층, 11~20=2층, …
+        int FloorOf(LocationData l)
+        {
+            if (l == null) return 1;
+            if (l.floor > 0) return l.floor;
+            var id = l.locationId ?? "";
+            int n;
+            if (id.StartsWith("Loc") && int.TryParse(id.Substring(3), out n) && n > 0) return (n - 1) / 10 + 1;
+            return 1;
         }
 
         // 층 번호 → 표시 이름. 특수층은 여기서 매핑(필요 시 확장).
