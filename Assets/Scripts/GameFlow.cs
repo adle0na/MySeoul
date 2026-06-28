@@ -67,6 +67,7 @@ namespace SeoulLast
         GameObject choiceButtonPrefab;
         RectTransform gridRect, slotsRect, trayRect, trashZone, dragLayer;
         Button useBtn; TextMeshProUGUI useBtnLabel; PlacedItem selectedItem;
+        GameObject dayStartGO;          // 가방 '계속/닫기' 버튼(씬에서 비활성일 수 있어 ShowBag에서 활성화)
         System.Action bagOnDone;        // 가방 정비 완료 시 동작(맥락별)
         RectTransform bagPanelRT;
         float bagHiddenY;
@@ -143,6 +144,7 @@ namespace SeoulLast
             endingBody = c.Find("EndingPanel/Box/B").GetComponent<TextMeshProUGUI>();
             goBody = c.Find("GameOverPanel/Box/B").GetComponent<TextMeshProUGUI>();
             restBody = c.Find("RestPanel/Box/B").GetComponent<TextMeshProUGUI>();
+            dayStartGO = c.Find("BagPanel/DayStart")?.gameObject;
             var dayStartLabel = c.Find("BagPanel/DayStart/Label"); bagBtnLabel = dayStartLabel != null ? dayStartLabel.GetComponent<TextMeshProUGUI>() : null;
 
             choiceArea    = c.Find("EventPanel/Card/ChoiceArea").GetComponent<RectTransform>();
@@ -247,6 +249,7 @@ namespace SeoulLast
             bagOpenedByItem = byItem;
             selectedItem = null;
             if (bagBtnLabel != null) bagBtnLabel.text = label;
+            if (dayStartGO != null) dayStartGO.SetActive(true);   // 진행/닫기 버튼 보장(씬에서 꺼져 있어도)
             BuildBagScreen();
             if (bagPanelRT == null) InitBagPanelPos();
             bagPanel.SetActive(true);
@@ -953,7 +956,23 @@ namespace SeoulLast
             if (string.IsNullOrEmpty(itemId)) return;
             var d = FindItemData(itemId);
             if (d == null) { Debug.LogWarning($"[GameFlow] 아이템 데이터 없음: {itemId} (Items 배열/시트 확인)"); return; }
-            tray.Add(new PlacedItem(DefFromItemData(d)));
+            var item = new PlacedItem(DefFromItemData(d));
+            // 트레이 정비 UI가 있으면 트레이로, 없으면(그리드 전용 새 디자인) 그리드에 자동 배치 → 가방에서 바로 보임
+            if (trayRect != null) tray.Add(item);
+            else AutoPlaceInBag(item);
+        }
+
+        // 활성 그리드 영역에서 빈칸을 찾아 자동 배치 (정비 트레이가 없는 새 디자인용)
+        void AutoPlaceInBag(PlacedItem item)
+        {
+            int o = bag.ActiveOffset, s = bag.ActiveSize;
+            for (int y = o; y < o + s; y++)
+                for (int x = o; x < o + s; x++)
+                {
+                    var origin = new Vector2Int(x, y);
+                    if (bag.CanPlace(item.Def, origin, null)) { bag.PlaceAt(item, origin); return; }
+                }
+            bag.PlaceAt(item, new Vector2Int(o, o));   // 자리 없으면 분실 방지로 일단 추가
         }
 
         void AfterEventResolve(string nextId)
