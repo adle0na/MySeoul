@@ -292,6 +292,7 @@ namespace SeoulLast
             selectedItem = null;
             if (bagBtnLabel != null) bagBtnLabel.text = label;
             if (dayStartGO != null) dayStartGO.SetActive(true);   // 진행/닫기 버튼 보장(씬에서 꺼져 있어도)
+            EnsureUseButton();   // 회복 아이템 '사용' 버튼(씬에서 삭제됐으면 런타임 생성)
             BuildBagScreen();
             if (bagPanelRT == null) InitBagPanelPos();
             bagPanel.SetActive(true);
@@ -415,6 +416,23 @@ namespace SeoulLast
             if (selectedItem == null || !selectedItem.Def.IsRecovery) return;
             UseRecovery(selectedItem);   // 내부에서 BuildBagScreen 호출
             selectedItem = null;
+        }
+
+        // 회복 아이템 '사용' 버튼 런타임 생성(씬에서 삭제된 경우 대비). 가방 하단 중앙.
+        void EnsureUseButton()
+        {
+            if (useBtn != null || bagPanel == null) return;
+            TextMeshProUGUI lbl;
+            useBtn = UIFactory.Button(bagPanel.transform, "UseBtnRuntime", "사용할 회복 아이템을 선택",
+                new Color(0.30f, 0.55f, 0.45f), OnUseBtn, out lbl);
+            var rt = useBtn.GetComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0.5f, 0f); rt.anchorMax = new Vector2(0.5f, 0f); rt.pivot = new Vector2(0.5f, 0f);
+            rt.sizeDelta = new Vector2(760, 110);
+            rt.anchoredPosition = new Vector2(0, 30);   // 가방 하단 중앙
+            lbl.fontSize = 32;
+            useBtnLabel = lbl;
+            useBtn.interactable = false;
+            useBtn.transform.SetAsLastSibling();
         }
 
         void UseRecovery(PlacedItem p)
