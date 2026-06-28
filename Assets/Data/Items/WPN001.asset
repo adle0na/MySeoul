@@ -16,7 +16,7 @@ MonoBehaviour:
   itemName: "\uC57C\uAD6C\uBC30\uD2B8"
   itemType: "\uBB34\uAE30"
   durability: 5
-  description: "\uC57C\uAD6C\uBD80 \uBD80\uC2E4\uC5D0\uC11C \uCC59\uAE34 \uC54C\uB8E8\uBBF8\uB284
+  description: "\uC57C\uAD6C\uBD80 \uBD80\uC2E4\uC5D0\uC11C \uCC59\uAE34 \uB098\uBB34
     \uBC30\uD2B8. \uBB35\uC9C1\uD558\uB2E4."
   sellGold: 0
   buyGold: 0
@@ -25,5 +25,5 @@ MonoBehaviour:
   specialEvent: 
   resourcePath: 
   resourceName: 
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 2151921b9a633ae4897f6974a6928ab5, type: 3}
   shape: 010000000000000100000000000001000000000000000000000000000000
