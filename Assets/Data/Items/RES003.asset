@@ -26,5 +26,5 @@ MonoBehaviour:
   specialEvent: 
   resourcePath: 
   resourceName: 
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: f06b02f719b884b8b8691d2c8c03eb10, type: 3}
   shape: 010000000000000000000000000000000000000000000000000000000000
