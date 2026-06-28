@@ -66,6 +66,7 @@ namespace SeoulLast.EditorTools
         }
 
         const string SpineDataPath = "Assets/art/Character/walk/Character_Yeger_walk_SkeletonData.asset";
+        const string SpineIdleDataPath = "Assets/art/Character/idle_robi/NPYGchan_SkeletonData.asset";
 
         // Spine 걷기 캐릭터를 EventPanel에 베이크 (walk 루프). 플레이스홀더 Char 숨김.
         static void SetupSpineCharacter(GameObject canvas)
@@ -85,7 +86,25 @@ namespace SeoulLast.EditorTools
             var rt = sg.rectTransform;
             rt.anchorMin = new Vector2(0, 1); rt.anchorMax = new Vector2(0, 1); rt.pivot = new Vector2(0.5f, 0f);
             rt.localScale = Vector3.one * 0.6f;
-            rt.anchoredPosition = new Vector2(300, -1090);   // 캐릭터 자리(에디터에서 미세조정)
+            rt.anchoredPosition = new Vector2(-120, -700);   // 캐릭터 자리(에디터에서 미세조정)
+
+            // 정면 idle 스켈레톤 (O001-01~08 등 정지 장면용). 기본 비활성, 위치는 walk와 동일.
+            var oldIdle = ep.Find("CharSpineIdle"); if (oldIdle != null) Object.DestroyImmediate(oldIdle.gameObject);
+            var idleData = AssetDatabase.LoadAssetAtPath<SkeletonDataAsset>(SpineIdleDataPath);
+            if (idleData != null)
+            {
+                var sgi = SkeletonGraphic.NewSkeletonGraphicGameObject(idleData, ep, null);
+                sgi.gameObject.name = "CharSpineIdle";
+                sgi.startingAnimation = "robi_idle";
+                sgi.startingLoop = true;
+                sgi.Initialize(true);
+                var rti = sgi.rectTransform;
+                rti.anchorMin = new Vector2(0, 1); rti.anchorMax = new Vector2(0, 1); rti.pivot = new Vector2(0.5f, 0f);
+                rti.localScale = Vector3.one * 0.6f;
+                rti.anchoredPosition = new Vector2(-120, -700);
+                sgi.gameObject.SetActive(false);
+            }
+            else Debug.LogWarning("[FlowCanvasBuilder] idle SkeletonDataAsset 없음: " + SpineIdleDataPath);
 
             var ch = ep.Find("Char"); if (ch != null) ch.gameObject.SetActive(false);
         }
