@@ -133,6 +133,19 @@ namespace SeoulLast
             if (!Placed.Contains(p)) Placed.Add(p);
         }
 
+        // 활성 영역에서 def가 들어갈 첫 빈칸 origin(없으면 null). 드롭 자동 안착용.
+        public Vector2Int? FirstFreeActiveOrigin(ItemDef def, PlacedItem ignore)
+        {
+            int o = ActiveOffset, s = ActiveSize;
+            for (int y = o; y < o + s; y++)
+                for (int x = o; x < o + s; x++)
+                {
+                    var origin = new Vector2Int(x, y);
+                    if (CanPlace(def, origin, ignore)) return origin;
+                }
+            return null;
+        }
+
         public void RemoveFromBag(PlacedItem p) => Placed.Remove(p);
 
         public bool Contains(string itemId) => Placed.Any(p => p.Def.Id == itemId);
