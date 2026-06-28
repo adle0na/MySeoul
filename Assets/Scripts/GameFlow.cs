@@ -1058,20 +1058,21 @@ namespace SeoulLast
             foreach (var f in floors)
             {
                 int ff = f;
-                TextMeshProUGUI tl; var tb = UIFactory.Button(mapArea, "floorTab", FloorName(f), new Color(0.25f, 0.40f, 0.55f), () => RebuildRegions(ff), out tl);
+                TextMeshProUGUI tl; var tb = UIFactory.Button(mapArea, "floorTab", FloorName(f), new Color(0.25f, 0.40f, 0.55f), () => RebuildRegions(ff, true), out tl);
                 UIFactory.SetRect(tb.GetComponent<RectTransform>(), idx * (tabW + tabGap), 0, tabW, tabH);
                 idx++;
             }
 
             int first = int.MaxValue; foreach (var f in floors) if (f < first) first = f;
-            RebuildRegions(first);   // 첫 층 기본 표시
+            RebuildRegions(first, false);   // 첫 층 버튼은 보이되, 하단은 '장소를 선택해주세요'
             Only(mapPanel);
         }
 
         int curMapFloor;
 
-        // 선택한 층의 지역 버튼만 다시 그리고, 하단에 그 층 정보 표시
-        void RebuildRegions(int floor)
+        // 선택한 층의 지역 버튼만 다시 그림. floorInfo=true면 하단에 층 정보,
+        // false(처음 진입)면 '장소를 선택해주세요' 안내.
+        void RebuildRegions(int floor, bool floorInfo)
         {
             curMapFloor = floor;
             selLocId = null; selLocName = null;
@@ -1093,12 +1094,20 @@ namespace SeoulLast
                 UIFactory.SetRect(b.GetComponent<RectTransform>(), col * (btnW + gapX), top + row * (btnH + gapY), btnW, btnH);
             }
 
-            // 하단: 선택한 층 정보
-            if (mapInfoName != null) mapInfoName.text = FloorName(floor);
-            if (mapInfoDesc != null)
+            // 하단: 층 정보(탭 선택 시) 또는 안내 멘트(처음 진입/선택 없음)
+            if (floorInfo)
             {
-                var names = new List<string>(); foreach (var l in list) names.Add(l.locationName);
-                mapInfoDesc.text = $"지역 {list.Count}곳: " + string.Join(", ", names);
+                if (mapInfoName != null) mapInfoName.text = FloorName(floor);
+                if (mapInfoDesc != null)
+                {
+                    var names = new List<string>(); foreach (var l in list) names.Add(l.locationName);
+                    mapInfoDesc.text = $"지역 {list.Count}곳: " + string.Join(", ", names);
+                }
+            }
+            else
+            {
+                if (mapInfoName != null) mapInfoName.text = "";
+                if (mapInfoDesc != null) mapInfoDesc.text = "장소를 선택해주세요";
             }
         }
 
