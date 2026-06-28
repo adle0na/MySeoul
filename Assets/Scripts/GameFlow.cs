@@ -627,7 +627,7 @@ namespace SeoulLast
             if (rti != null)
             {
                 rti.anchorMin = new Vector2(0, 1); rti.anchorMax = new Vector2(0, 1); rti.pivot = new Vector2(0.5f, 0f);
-                rti.localScale = Vector3.one * 0.6f; rti.anchoredPosition = new Vector2(300, -1090);
+                rti.localScale = Vector3.one * 0.6f; rti.anchoredPosition = new Vector2(-120, -700);
             }
             charSpineIdleGO = sgi.gameObject;
             charSpineIdleGO.SetActive(false);

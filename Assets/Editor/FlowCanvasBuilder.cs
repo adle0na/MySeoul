@@ -86,7 +86,7 @@ namespace SeoulLast.EditorTools
             var rt = sg.rectTransform;
             rt.anchorMin = new Vector2(0, 1); rt.anchorMax = new Vector2(0, 1); rt.pivot = new Vector2(0.5f, 0f);
             rt.localScale = Vector3.one * 0.6f;
-            rt.anchoredPosition = new Vector2(300, -1090);   // 캐릭터 자리(에디터에서 미세조정)
+            rt.anchoredPosition = new Vector2(-120, -700);   // 캐릭터 자리(에디터에서 미세조정)
 
             // 정면 idle 스켈레톤 (O001-01~08 등 정지 장면용). 기본 비활성, 위치는 walk와 동일.
             var oldIdle = ep.Find("CharSpineIdle"); if (oldIdle != null) Object.DestroyImmediate(oldIdle.gameObject);
@@ -101,7 +101,7 @@ namespace SeoulLast.EditorTools
                 var rti = sgi.rectTransform;
                 rti.anchorMin = new Vector2(0, 1); rti.anchorMax = new Vector2(0, 1); rti.pivot = new Vector2(0.5f, 0f);
                 rti.localScale = Vector3.one * 0.6f;
-                rti.anchoredPosition = new Vector2(300, -1090);
+                rti.anchoredPosition = new Vector2(-120, -700);
                 sgi.gameObject.SetActive(false);
             }
             else Debug.LogWarning("[FlowCanvasBuilder] idle SkeletonDataAsset 없음: " + SpineIdleDataPath);
