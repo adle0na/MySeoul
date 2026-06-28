@@ -14,8 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.LocationData
   locationId: Loc027
   locationName: "\uC625\uC0C1 \uACC4\uB2E8"
-  floor: 0
+  floor: 3
   isLock: 1
   visitCount: 0
   description: "\uC625\uC0C1\uC73C\uB85C \uAC00\uB294 \uACC4\uB2E8. \uCC45\uC0C1\uACFC
     \uC0AC\uBB3C\uD568\uC73C\uB85C \uB2E8\uB2E8\uD788 \uB9C9\uD600 \uC788\uB2E4."
+  assetName: step

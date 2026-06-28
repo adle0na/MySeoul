@@ -14,9 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.LocationData
   locationId: Loc006
   locationName: "\uD654\uC7A5\uC2E4"
-  floor: 0
+  floor: 1
   isLock: 0
   visitCount: 0
   description: "\uD654\uC7A5\uC2E4. \uC218\uB3C4\uAF2D\uC9C0\uB97C \uD2C0\uC5B4\uB3C4
     \uBB3C\uC774 \uB098\uC624\uC9C0 \uC54A\uB294\uB2E4. \uAD1C\uD788 \uBAA9\uC774
     \uB354 \uB9C8\uB974\uB2E4."
+  assetName: toilet

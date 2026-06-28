@@ -14,8 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.LocationData
   locationId: Loc009
   locationName: "\uACFC\uD559\uC2E4"
-  floor: 0
-  isLock: 1
+  floor: 1
+  isLock: 0
   visitCount: 0
   description: "\uACFC\uD559\uC2E4. \uBB38\uC774 \uC7A0\uACA8 \uC788\uB2E4. \uC57D\uD488
     \uB0C4\uC0C8\uAC00 \uBB38\uD2C8\uC73C\uB85C \uC0C8\uC5B4 \uB098\uC628\uB2E4."
+  assetName: sciencelab

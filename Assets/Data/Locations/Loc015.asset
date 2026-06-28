@@ -14,8 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.LocationData
   locationId: Loc015
   locationName: "\uBC29\uC1A1\uC2E4"
-  floor: 0
+  floor: 2
   isLock: 1
   visitCount: 0
   description: "\uBC29\uC1A1\uC2E4. \uBB38\uC774 \uC7A0\uACA8 \uC788\uB2E4. \uC548\uC5D0\uC11C
     \uD76C\uBBF8\uD55C \uC7A1\uC74C\uC774 \uC0C8\uC5B4 \uB098\uC628\uB2E4."
+  assetName: studio

@@ -14,9 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.LocationData
   locationId: Loc004
   locationName: "1\uD559\uB144 \uBCF5\uB3C4"
-  floor: 0
+  floor: 1
   isLock: 0
   visitCount: 0
   description: "1\uD559\uB144 \uBCF5\uB3C4. \uD615\uAD11\uB4F1 \uD558\uB098\uAC00
     \uD798\uC5C6\uC774 \uAE5C\uBE61\uC778\uB2E4. \uC790\uAFB8 \uBC1C\uC18C\uB9AC\uB97C
     \uC8FD\uC774\uAC8C \uB41C\uB2E4."
+  assetName: bg_hallway

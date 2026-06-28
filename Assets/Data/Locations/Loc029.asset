@@ -14,8 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.LocationData
   locationId: Loc029
   locationName: "\uC219\uC9C1\uC2E4"
-  floor: 0
+  floor: 3
   isLock: 1
   visitCount: 0
   description: "\uC219\uC9C1\uC2E4. \uB204\uAD70\uAC00 \uB9C8\uC9C0\uB9C9\uAE4C\uC9C0
     \uBC84\uD2F4 \uD754\uC801. \uB2F4\uC694\uC640 \uC2DD\uC740 \uCEF5\uB77C\uBA74."
+  assetName: sleeproom

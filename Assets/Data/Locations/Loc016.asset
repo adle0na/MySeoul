@@ -14,8 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.LocationData
   locationId: Loc016
   locationName: "\uCEF4\uD4E8\uD130\uC2E4"
-  floor: 0
+  floor: 2
   isLock: 1
   visitCount: 0
   description: "\uCEF4\uD4E8\uD130\uC2E4. \uC7A0\uAE34 \uBB38 \uB108\uBA38\uB85C
     \uAE68\uC9C4 \uBAA8\uB2C8\uD130\uB4E4\uC774 \uBCF4\uC778\uB2E4."
+  assetName: compute_roomromm

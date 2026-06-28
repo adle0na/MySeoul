@@ -14,8 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.LocationData
   locationId: Loc023
   locationName: "3-3\uBC18"
-  floor: 0
+  floor: 3
   isLock: 1
   visitCount: 0
   description: "3-3\uBC18. \uCC45\uC0C1\uC73C\uB85C \uC313\uC740 \uB18D\uC131 \uD754\uC801\uC774
     \uAC00\uC7A5 \uB2E8\uB2E8\uD558\uAC8C \uB0A8\uC544 \uC788\uB2E4."
+  assetName: classroom

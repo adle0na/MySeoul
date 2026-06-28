@@ -14,8 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SeoulLast.Data.LocationData
   locationId: Loc020
   locationName: "\uB9E4\uC810"
-  floor: 0
+  floor: 2
   isLock: 1
   visitCount: 0
   description: "\uB9E4\uC810. \uC154\uD130\uAC00 \uBC18\uCBE4 \uB0B4\uB824\uC640
     \uC788\uB2E4. \uBA39\uC744 \uAC8C \uB0A8\uC544 \uC788\uC744\uC9C0\uB3C4."
+  assetName: food
