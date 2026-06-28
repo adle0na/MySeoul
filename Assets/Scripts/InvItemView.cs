@@ -125,6 +125,13 @@ namespace SeoulLast
                         host.PlaceInBag(this, origin);
                         return;
                     }
+                    // 정확한 칸이 안 맞으면 빈 활성칸에 자동 안착(드롭 관대화)
+                    var snap = host.Bag.FirstFreeActiveOrigin(Model.Def, Model);
+                    if (snap.HasValue)
+                    {
+                        host.PlaceInBag(this, snap.Value);
+                        return;
+                    }
                 }
             }
 
