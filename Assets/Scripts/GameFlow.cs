@@ -64,6 +64,9 @@ namespace SeoulLast
         GameObject startPanel, cutscenePanel, bagPanel, eventPanel, endingPanel, gameOverPanel, restPanel, mapPanel;
         TextMeshProUGUI bagBody, eventTitle, eventBody, endingBody, goBody, restBody, bagBtnLabel;
         RectTransform choiceArea, mapArea;
+        TextMeshProUGUI mapInfoName, mapInfoDesc;   // 지도 하단 선택지역 정보(DiscriptionArea)
+        GameObject mapGoBtn;                          // 지도 하단 '출발' 버튼(런타임)
+        string selLocId, selLocName;                 // 지도에서 현재 선택한 지역
         GameObject choiceButtonPrefab;
         RectTransform gridRect, slotsRect, trayRect, trashZone, dragLayer;
         Button useBtn; TextMeshProUGUI useBtnLabel; PlacedItem selectedItem;
@@ -181,6 +184,8 @@ namespace SeoulLast
             charSpineIdleGO = ciT != null ? ciT.gameObject : null;
             if (charSpineIdleGO != null) charSpineIdleGO.SetActive(false);
             mapArea = c.Find("MapPanel/MapArea").GetComponent<RectTransform>();
+            mapInfoName = c.Find("MapPanel/DiscriptionArea/ItemName")?.GetComponent<TextMeshProUGUI>();
+            mapInfoDesc = c.Find("MapPanel/DiscriptionArea/ItemDiscription")?.GetComponent<TextMeshProUGUI>();
             // 가방 요소 — 오브젝트가 삭제/이동돼도 NRE 안 나도록 null-safe 바인딩
             gridRect    = c.Find("BagPanel/Grid")?.GetComponent<RectTransform>();
             slotsRect   = c.Find("BagPanel/Slots")?.GetComponent<RectTransform>();
@@ -1013,12 +1018,8 @@ namespace SeoulLast
         }
 
         // 한 스테이지(5이벤트) 완료 → 휴식
-        void ShowRest()
-        {
-            string head = stageNo == 0 ? "온보딩 완료" : $"스테이지 {stageNo} 완료";
-            restBody.text = $"<b>{head}</b>\n\n{StatusSummary()}\n\n휴식하며 가방을 정비하고, 지도에서 다음 장소를 고르세요.";
-            Only(restPanel);
-        }
+        // 휴식 화면 제거 — 이벤트 종료 후 곧바로 지도(MapPanel)로 이동
+        void ShowRest() { ShowMap(); }
 
         // 지도에서 장소 선택 → 다음 스테이지 시작 (첫 이벤트 = 그 장소 시나리오)
         void StartStage(string locId, string locName)
@@ -1039,6 +1040,11 @@ namespace SeoulLast
 
         void ShowMap()
         {
+            EnsureMapGoButton();
+            selLocId = null; selLocName = null;
+            if (mapInfoName != null) mapInfoName.text = "";
+            if (mapInfoDesc != null) mapInfoDesc.text = "지역을 선택하세요";
+            if (mapGoBtn != null) mapGoBtn.SetActive(false);
             for (int i = mapArea.childCount - 1; i >= 0; i--) Destroy(mapArea.GetChild(i).gameObject);
 
             // 잠금 해제된 장소를 층(floor)별로 묶는다. 높은 층이 위로 오도록 내림차순.
@@ -1047,8 +1053,8 @@ namespace SeoulLast
             if (locations != null)
                 foreach (var l in locations)
                 {
-                    if (l == null || l.isLock) continue;
-                    if (l.floor <= 0) continue;   // 층 미지정(기타)은 지도에서 제외
+                    if (l == null) continue;   // 잠금 포함 모든 지역 표시
+                    // floor 데이터가 있으면 층별, 없으면(0) 한 그룹으로 묶어 표시
                     if (!byFloor.TryGetValue(l.floor, out var list)) { list = new List<LocationData>(); byFloor[l.floor] = list; }
                     list.Add(l);
                 }
@@ -1069,8 +1075,9 @@ namespace SeoulLast
                 for (int i = 0; i < list.Count; i++)
                 {
                     int col = i % perRow, rowIdx = i / perRow;
-                    var lid = list[i].locationId; var lname = list[i].locationName;
-                    TextMeshProUGUI tl; var b = UIFactory.Button(mapArea, "loc", lname, new Color(0.32f, 0.45f, 0.6f), () => StartStage(lid, lname), out tl);
+                    var loc = list[i];
+                    var col0 = loc.isLock ? new Color(0.28f, 0.30f, 0.34f) : new Color(0.32f, 0.45f, 0.6f);  // 잠금=흐림
+                    TextMeshProUGUI tl; var b = UIFactory.Button(mapArea, "loc", loc.locationName, col0, () => SelectRegion(loc), out tl);
                     UIFactory.SetRect(b.GetComponent<RectTransform>(), col * (btnW + gapX), y + rowIdx * (btnH + gapY), btnW, btnH);
                     shown++;
                 }
@@ -1089,8 +1096,43 @@ namespace SeoulLast
         // 층 번호 → 표시 이름. 특수층은 여기서 매핑(필요 시 확장).
         string FloorName(int f)
         {
-            if (f <= 0) return "기타";
+            if (f <= 0) return "지역";
             return f + "층";
+        }
+
+        // 지역 버튼 선택 → 하단 정보 표시 + 출발 버튼 노출
+        void SelectRegion(LocationData l)
+        {
+            if (l == null) return;
+            selLocId = l.locationId; selLocName = l.locationName;
+            string lockTag = l.isLock ? "  <color=#cc5555>(잠김)</color>" : "";
+            if (mapInfoName != null) mapInfoName.text = $"{l.locationName}{lockTag}";
+            if (mapInfoDesc != null) mapInfoDesc.text = string.IsNullOrEmpty(l.description) ? l.locationName : l.description;
+            // 잠긴 지역은 출발 불가(정보만 표시)
+            if (mapGoBtn != null) { mapGoBtn.SetActive(!l.isLock); if (!l.isLock) mapGoBtn.transform.SetAsLastSibling(); }
+        }
+
+        // 지도 하단 '출발' 버튼 런타임 생성(숨김). 선택 지역으로 스테이지 시작.
+        void EnsureMapGoButton()
+        {
+            if (mapGoBtn != null || mapPanel == null) return;
+            TextMeshProUGUI lbl;
+            var btn = UIFactory.Button(mapPanel.transform, "MapGoBtn", "출발 →",
+                new Color(0.85f, 0.55f, 0.25f), OnMapGo, out lbl);
+            var rt = btn.GetComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0.5f, 0f); rt.anchorMax = new Vector2(0.5f, 0f); rt.pivot = new Vector2(0.5f, 0f);
+            rt.sizeDelta = new Vector2(460, 140);
+            rt.anchoredPosition = new Vector2(0, 60);   // 화면 하단 중앙
+            lbl.fontSize = 44;
+            mapGoBtn = btn.gameObject;
+            mapGoBtn.SetActive(false);
+        }
+
+        void OnMapGo()
+        {
+            if (string.IsNullOrEmpty(selLocId) && string.IsNullOrEmpty(selLocName)) return;
+            if (mapGoBtn != null) mapGoBtn.SetActive(false);
+            StartStage(selLocId, selLocName);
         }
 
         EventData FindEvent(string id)
